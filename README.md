@@ -1,4 +1,4 @@
-# Self-Supervised Reversibility- AWare Deep Reinforcement Learning for DC/HPC Optical Network Reconfiguration (RA-DRL)
+# Self-Supervised Reversibility- Aware Deep Reinforcement Learning for DC/HPC Optical Network Reconfiguration (RA-DRL)
 
 ## Introduction
 
