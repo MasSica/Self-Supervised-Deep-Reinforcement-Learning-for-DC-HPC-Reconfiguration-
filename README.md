@@ -12,3 +12,10 @@ The goal of this work is to prove experimentally that a reinforcement learning d
 ## Results
 
 The DRL agent was able to obtain a improvemnt in training time for a test distributed computer vision application of a factor 5, while the RA-DRL was able to get to the same result with up to 64% improvement in convergence time.  
+
+
+## How to run
+1 - Download the code 
+2 - Install the required packages in requirements.txt 
+3 - Choose which scenario you want to simulate: pure DRL or RA-DRL
+4 - Run the assciated main file 
