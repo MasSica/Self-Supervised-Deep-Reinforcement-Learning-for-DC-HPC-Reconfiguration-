@@ -15,7 +15,7 @@ The DRL agent was able to obtain a improvemnt in training time for a test distri
 
 
 ## How to run
-1 - Download the code 
-2 - Install the required packages in requirements.txt 
-3 - Choose which scenario you want to simulate: pure DRL or RA-DRL
-4 - Run the assciated main file 
+- Download the code 
+- Install the required packages in requirements.txt 
+- Choose which scenario you want to simulate: pure DRL or RA-DRL
+- Run the assciated main file 
