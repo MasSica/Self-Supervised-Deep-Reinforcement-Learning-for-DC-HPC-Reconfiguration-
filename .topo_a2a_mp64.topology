@@ -2,7 +2,7 @@
 
 # Details 
 |V|=4
-|E|=8
+|E|=0
 ToRs=set(0,1,2,3)
 Servers=set(0,1,2,3)
 Switches=set() 

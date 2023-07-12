@@ -29,15 +29,15 @@ class Workload:
         l= 0
         r = 1
         while r < len(self.tors):
-            pairs.append(tuple(self.tors[l], self.tors[r]))
+            pairs.append(tuple((self.tors[l], self.tors[r])))
             l+=1
             r+=1
 
         # here I need to add the traffic amount to the tm
-        for i in range(len(self.tm_matrix_size_w)):
-            for j in range(len(self.tm_matrix_size_h)):
+        for i in range(self.tm_matrix_size_w):
+            for j in range(self.tm_matrix_size_h):
                 # ToRs are passed in order where the first one is where the workload starts and the last one where it ends
-                if (i,j) in self.pairs:
+                if (i,j) in pairs:
                     self.tm[i][j] = self.gigabit_s
         
         return self.tm
