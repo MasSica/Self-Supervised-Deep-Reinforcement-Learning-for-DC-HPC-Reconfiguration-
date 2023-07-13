@@ -73,8 +73,7 @@ class Workload:
                     
                     for path in paths:
                         cur_cumulative_band = 0
-                        l = 0
-                        r = 1
+                        l = 0; r = 1
                         
                         while r < len(path):
                             cur_cumulative_band += band_avail[tuple([path[l],path[r]])]
@@ -86,10 +85,19 @@ class Workload:
                             chosen_path = path
                             all_paths[(i,j)] = chosen_path 
                     
-                    # step 3 - update graph bandwidth
+                            # step 3 - update graph bandwidth assuming all the gigabit_s could be allocated
+                            l = 0; r = 1
+                            while r < len(chosen_path):
+                                G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']-= self.gigabit_s
+                                l+=1
+                                r+=1
 
-                    print(all_paths)
-                    
+        print(f"All_Paths {all_paths}")
+        print(nx.get_edge_attributes(G, "weight"))
+        return 
+
+
+
 
 
 
