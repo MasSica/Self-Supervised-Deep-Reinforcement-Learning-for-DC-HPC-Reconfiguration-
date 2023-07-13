@@ -26,6 +26,14 @@ if __name__ == "__main__":
         G, connectivity_h, connetivity_v = topology_gen.get_graph()
         topology_gen.write_to_file()
 
+        # -------DEBUGGING-----------
+        #weigth = nx.get_edge_attributes(G, "weight")
+        #print(list(G.edges))
+        #for edge in list(G.edges):
+        #    print(weigth[edge])
+        #print("------------")
+        # -------DEBUGGING-----------
+
         # Ask user to deploy a workload 
         print("Please provide workload information on each line: Gigabit/s, Time to finish (seconds), ToRs involved ")
         inputs = []
@@ -41,5 +49,6 @@ if __name__ == "__main__":
 
         workload = Workload(num_tors_h, num_tors_v, ttf, gbs, *tors_involved)
         tm = workload.fill_tm()
-
+        print(f"tm {tm}")
         # Now that we have our traffic matrix, we can route the workload the user requested
+        workload.route(G)

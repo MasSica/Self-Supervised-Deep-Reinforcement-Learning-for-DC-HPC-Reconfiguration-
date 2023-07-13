@@ -65,12 +65,12 @@ class TopologyGenerator:
     def get_graph(self):
         nr_tor = self.num_tors_v* self.num_tors_h
         num_tors = self.num_tors_h* self.num_tors_v # temporary 
-        G = nx.Graph()
+        G = nx.DiGraph()
         G.add_nodes_from(list(range(nr_tor)))
         pos = {}
         edges = []
         radius = 3
-        weights = np.ones((self.num_tors_v, self.num_tors_h))
+        weights = np.full((self.num_tors_v, self.num_tors_h), self.wave_capacity)  # represents the bandwidth
         self.connectivity_h = np.zeros((num_tors, num_tors))
         self.connectivity_v = np.zeros((num_tors, num_tors))
 
@@ -81,11 +81,15 @@ class TopologyGenerator:
                 for k in range(self.num_tors_h-j-1):
                 # add horizontal edges
                     G.add_edge(self.num_tors_h*i+j, self.num_tors_h*i+j+k+1, weight=weights[i, j])
+                    G.add_edge(self.num_tors_h*i+j+k+1,self.num_tors_h*i+j, weight=weights[i, j])
+                    #print(f"added edge {(self.num_tors_h*i+j, self.num_tors_h*i+j+k+1)}")
+                    #print(f"added edge {(self.num_tors_h*i+j+k+1,self.num_tors_h*i+j)}")
                     self.connectivity_h[self.num_tors_h*i+j, self.num_tors_h*i+j+k+1] = 1
                     self.connectivity_h[self.num_tors_h * i + j + k + 1, self.num_tors_h * i + j] = 1
                     # edges.append([num_tors_h*i+j, num_tors_h*i+j+k+1, weights[i, j]])
                     # add vertical edges
                     G.add_edge(i + self.num_tors_h * j, i+self.num_tors_h *(j +k+ 1), weight=weights[i, j])
+                    G.add_edge(i+self.num_tors_h *(j +k+ 1), i + self.num_tors_h * j, weight=weights[i, j])
                     self.connectivity_v[i + self.num_tors_h * j, i+self.num_tors_h *(j +k+ 1)] = 1
                     self.connectivity_v[i + self.num_tors_h * (j + k + 1), i + self.num_tors_h * j] = 1
                     # edges.append([i + num_tors_h * j, i+num_tors_h *( j +k+ 1), weights[i, j]])
