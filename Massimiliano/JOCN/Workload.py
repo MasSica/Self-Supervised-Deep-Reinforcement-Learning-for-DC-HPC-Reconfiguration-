@@ -4,9 +4,12 @@ This class will implement a workload simulator for our topology:
 - tm_matrix_size_h and _w are the rows and columns of the traffic matrix that we return to the main program
 - time_to_finish is the amount of seconds that the workload has to run at full speed to complete
 - gigabit_s is the amount of gigabit per second that the workload needs to finish in time_to_finish seconds
-- path_taken will be used to record where each workload is flowing 
+- all_paths will be used to record where each workload is flowing
+- to_be_allocated is used to understand how much traffic is not flowing  
+- start_time is used to record when the workload has begun
 """
 import networkx as nx 
+import time as time 
 
 class Workload:
     
@@ -19,7 +22,9 @@ class Workload:
         self.tm = [[0 for i in range(self.tm_size)] for j in range(self.tm_size)]
         self.time_to_finish_s = time_to_finish_s
         self.gigabit_s = gigabit_s
-        self.path_taken = []
+        self.all_paths = {}
+        self.to_be_allocated = self.gigabit_s
+        self.start_time = None
 
         for arg in args:
             self.tors.append(arg)
@@ -57,7 +62,6 @@ class Workload:
 
         max_cumulative_band = 0
         band_avail = nx.get_edge_attributes(G, "weight")
-        all_paths = {}
 
 
         for i in range(len(self.tm[0])):
@@ -83,22 +87,52 @@ class Workload:
                         if cur_cumulative_band > max_cumulative_band:
                             max_cumulative_band = cur_cumulative_band
                             chosen_path = path
-                            all_paths[(i,j)] = chosen_path 
-                    
-                            # step 3 - update graph bandwidth assuming all the gigabit_s could be allocated
-                            l = 0; r = 1
-                            while r < len(chosen_path):
-                                G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']-= self.gigabit_s
-                                l+=1
-                                r+=1
+                            self.all_paths[(i,j)] = chosen_path 
+        return 
 
-        print(f"All_Paths {all_paths}")
+    def start(self, G:nx.DiGraph)->None:
+        """
+        This function will take care of updating the graph band and tracking the amount of traffic
+        being served at every timestep
+        """
+        self.start_time = time.time()
+
+        for _, chosen_path in self.all_paths.items():
+            # step 3 - update graph bandwidth 
+            l = 0; r = 1
+            
+            while r < len(chosen_path):
+
+                band_avail = G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']
+
+                if self.gigabit_s <= band_avail:
+                    G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']-= self.gigabit_s
+
+                
+                elif self.gigabit_s > band_avail:
+                    # serve only the amount of traffic that you can 
+                    self.to_be_allocated -= band_avail
+                    G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight'] = 0
+                    # ------------------
+                    # here i calculate how much time is needed with the new speed
+                    total_gigs = self.time_to_finish_s*self.gigabit_s
+                    new_time_to_finish = total_gigs * band_avail
+                    self.time_to_finish_s = new_time_to_finish
+                    #-------------------
+                
+                else:
+                    pass
+
+                l+=1
+                r+=1
+            
+        print(f"All_Paths {self.all_paths}")
+        print("edge weights")
         print(nx.get_edge_attributes(G, "weight"))
         return 
 
-
-
-
+    def terminate(self):
+        # terminate workload 
 
 
 
