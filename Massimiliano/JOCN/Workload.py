@@ -13,8 +13,9 @@ import time as time
 
 class Workload:
     
-    def __init__(self,tm_matrix_size_h:int, tm_matrix_size_w:int, time_to_finish_s:float, gigabit_s:float, *args) -> None:
+    def __init__(self,name:str, tm_matrix_size_h:int, tm_matrix_size_w:int, time_to_finish_s:float, gigabit_s:float, *args) -> None:
         
+        self.name = name
         self.tors = []
         self.tm_matrix_size_h = tm_matrix_size_h  # defines how big the traffic matrix is 
         self.tm_matrix_size_w = tm_matrix_size_w
@@ -45,7 +46,7 @@ class Workload:
         for i in range(self.tm_size):
             for j in range(self.tm_size):
                 # ToRs are passed in order where the first one is where the workload starts and the last one where it ends
-                if (i,j) in pairs:
+                if (str(i),str(j)) in pairs:
                     self.tm[i][j] = self.gigabit_s
         
         return self.tm
@@ -90,12 +91,14 @@ class Workload:
                             self.all_paths[(i,j)] = chosen_path 
         return 
 
+    
     def start(self, G:nx.DiGraph)->None:
         """
         This function will take care of updating the graph band and tracking the amount of traffic
         being served at every timestep
         """
         self.start_time = time.time()
+        most_bottlnecked_edge = 90  # the value set in the topology class for capacity -10
 
         for _, chosen_path in self.all_paths.items():
             # step 3 - update graph bandwidth 
@@ -108,31 +111,56 @@ class Workload:
                 if self.gigabit_s <= band_avail:
                     G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']-= self.gigabit_s
 
-                
+                # Find the edge creating the strongest bottleneck and use it for the computation
+
                 elif self.gigabit_s > band_avail:
-                    # serve only the amount of traffic that you can 
-                    self.to_be_allocated -= band_avail
-                    G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight'] = 0
-                    # ------------------
-                    # here i calculate how much time is needed with the new speed
-                    total_gigs = self.time_to_finish_s*self.gigabit_s
-                    new_time_to_finish = total_gigs * band_avail
-                    self.time_to_finish_s = new_time_to_finish
-                    #-------------------
-                
+                    if band_avail > most_bottlnecked_edge: # this is the problem
+                        most_bottlnecked_edge = band_avail
+                     
                 else:
                     pass
 
                 l+=1
                 r+=1
             
+            # for the path currently under analysis, set all band to zero and calculate new time if 
+            # some traffic could not be allocated
+
+            if most_bottlnecked_edge != None:
+                l = 0; r = 1
+                while r < len(chosen_path):
+                    band_avail = G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']
+                    self.to_be_allocated -= band_avail
+                    G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight'] = 0
+                    r+=1
+                    l+=1
+                
+                # ------------------
+                print(f"time to finish before {self.time_to_finish_s}")
+                # here i calculate how much time is needed with the new speed
+                total_gigs = self.time_to_finish_s*self.gigabit_s
+                new_time_to_finish = total_gigs * band_avail
+                self.time_to_finish_s = new_time_to_finish
+                print(f"time to finish after {self.time_to_finish_s}")
+                #-------------------
+            
         print(f"All_Paths {self.all_paths}")
         print("edge weights")
         print(nx.get_edge_attributes(G, "weight"))
         return 
 
-    def terminate(self):
-        # terminate workload 
+    def terminate(self,G):
+        # terminate workload
+
+        for path in self.all_paths:
+            l = 0; r = 1
+            
+            while r < len(path):
+                G.edges[tuple([path[l],path[r]])]['weight']+= self.gigabit_s
+
+        print(f"Workload has terminated! Workload duration = {time.time()-self.start_time} ")
+
+
 
 
 
