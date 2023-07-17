@@ -10,6 +10,7 @@ This class will implement a workload simulator for our topology:
 """
 import networkx as nx 
 import time as time 
+import itertools
 
 class Workload:
     
@@ -98,7 +99,8 @@ class Workload:
         being served at every timestep
         """
         self.start_time = time.time()
-        most_bottlnecked_edge = 90  # the value set in the topology class for capacity -10
+        most_bottlnecked_edge_cap = 90  # the value set in the topology class for capacity -10
+        most_bottlnecked_edge = None
 
         for _, chosen_path in self.all_paths.items():
             # step 3 - update graph bandwidth 
@@ -114,8 +116,9 @@ class Workload:
                 # Find the edge creating the strongest bottleneck and use it for the computation
 
                 elif self.gigabit_s > band_avail:
-                    if band_avail > most_bottlnecked_edge: # this is the problem
-                        most_bottlnecked_edge = band_avail
+                    if band_avail > most_bottlnecked_edge_cap: # this is the problem!
+                        most_bottlnecked_edge_cap = band_avail
+                        most_bottlnecked_edge = tuple([l,r])
                      
                 else:
                     pass
@@ -123,26 +126,32 @@ class Workload:
                 l+=1
                 r+=1
             
-            # for the path currently under analysis, set all band to zero and calculate new time if 
-            # some traffic could not be allocated
+        # for the all the paths involved in the workload, decrease band and calculate new time if 
+        # some traffic could not be allocated
+        path_combined = list(set(itertools.chain.from_iterable(self.all_paths))) # to avoid duplicates
+        print(len(path_combined))
+        if most_bottlnecked_edge != None:
+            l = 0; r = 1
+            while r < len(path_combined):
+                band_avail = G.edges[tuple([path_combined[l],path_combined[r]])]['weight']
+                self.to_be_allocated -= band_avail
 
-            if most_bottlnecked_edge != None:
-                l = 0; r = 1
-                while r < len(chosen_path):
-                    band_avail = G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']
-                    self.to_be_allocated -= band_avail
-                    G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight'] = 0
-                    r+=1
-                    l+=1
+                if G.edges[tuple([path_combined[l],path_combined[r]])]['weight'] > band_avail:
+                    G.edges[tuple([path_combined[l],path_combined[r]])]['weight']-= band_avail
+                else:
+                    G.edges[tuple([path_combined[l],path_combined[r]])]['weight']=0
                 
-                # ------------------
-                print(f"time to finish before {self.time_to_finish_s}")
-                # here i calculate how much time is needed with the new speed
-                total_gigs = self.time_to_finish_s*self.gigabit_s
-                new_time_to_finish = total_gigs * band_avail
-                self.time_to_finish_s = new_time_to_finish
-                print(f"time to finish after {self.time_to_finish_s}")
-                #-------------------
+                r+=1
+                l+=1
+            
+            # ------------------
+            print(f"time to finish before {self.time_to_finish_s}")
+            # here i calculate how much time is needed with the new speed
+            total_gigs = self.time_to_finish_s*self.gigabit_s
+            new_time_to_finish = total_gigs * most_bottlnecked_edge_cap # I use the most bottlenecked link as reference
+            self.time_to_finish_s = new_time_to_finish
+            print(f"time to finish after {self.time_to_finish_s}")
+            #-------------------
             
         print(f"All_Paths {self.all_paths}")
         print("edge weights")
