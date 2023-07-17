@@ -3,7 +3,7 @@ a customizable datacenter network topology with one OCS"""
 
 # -*- coding: utf-8 -*-
 # @Time    : 22.09.21
-# @Author  : sansingh
+# @Author  : sansingh, massica
 
 import numpy as np
 import sys
