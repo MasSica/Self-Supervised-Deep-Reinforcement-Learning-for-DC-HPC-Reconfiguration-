@@ -99,7 +99,7 @@ class Workload:
         being served at every timestep
         """
         self.start_time = time.time()
-        most_bottlnecked_edge_cap = 90  # the value set in the topology class for capacity -10
+        most_bottlnecked_edge_cap = 100  # the value set in the topology class 
         most_bottlnecked_edge = None
 
         for _, chosen_path in self.all_paths.items():
@@ -116,9 +116,9 @@ class Workload:
                 # Find the edge creating the strongest bottleneck and use it for the computation
 
                 elif self.gigabit_s > band_avail:
-                    if band_avail > most_bottlnecked_edge_cap: # this is the problem!
+                    if band_avail <= most_bottlnecked_edge_cap: # this is the problem!
                         most_bottlnecked_edge_cap = band_avail
-                        most_bottlnecked_edge = tuple([l,r])
+                        most_bottlnecked_edge = tuple([chosen_path[l],chosen_path[r]])
                      
                 else:
                     pass
@@ -128,22 +128,31 @@ class Workload:
             
         # for the all the paths involved in the workload, decrease band and calculate new time if 
         # some traffic could not be allocated
-        path_combined = list(set(itertools.chain.from_iterable(self.all_paths))) # to avoid duplicates
-        print(len(path_combined))
-        if most_bottlnecked_edge != None:
-            l = 0; r = 1
-            while r < len(path_combined):
-                band_avail = G.edges[tuple([path_combined[l],path_combined[r]])]['weight']
-                self.to_be_allocated -= band_avail
+        
+        paths = [x for _,x in self.all_paths.items()] # I need to break this into edges and deal with all of them for band reduction
+        path_combined = list(itertools.chain.from_iterable(paths)) # combine paths together for processing
+        edges = set()
+        
+        l=0; r=1
 
-                if G.edges[tuple([path_combined[l],path_combined[r]])]['weight'] > band_avail:
-                    G.edges[tuple([path_combined[l],path_combined[r]])]['weight']-= band_avail
-                else:
-                    G.edges[tuple([path_combined[l],path_combined[r]])]['weight']=0
+        while r < len(path_combined):
+            edges.update([tuple([path_combined[l], path_combined[r]])]) # duplicates will be ignored
+            r+=1
+            l+=1
+
+        # process edge by edge and subtract bandwidth
+
+        if most_bottlnecked_edge != None:
+
+            for edge in edges:
+                band_avail = G.edges[edge]['weight']
+                self.to_be_allocated -= band_avail
                 
-                r+=1
-                l+=1
-            
+                if G.edges[edge]['weight'] > band_avail:
+                    G.edges[edge]['weight']-= band_avail
+                else:
+                    G.edges[edge]['weight']=0
+
             # ------------------
             print(f"time to finish before {self.time_to_finish_s}")
             # here i calculate how much time is needed with the new speed
