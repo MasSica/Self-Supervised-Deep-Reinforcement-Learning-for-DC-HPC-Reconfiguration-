@@ -116,7 +116,7 @@ class Workload:
                 # Find the edge creating the strongest bottleneck and use it for the computation
 
                 elif self.gigabit_s > band_avail:
-                    if band_avail <= most_bottlnecked_edge_cap: # this is the problem!
+                    if band_avail <= most_bottlnecked_edge_cap: 
                         most_bottlnecked_edge_cap = band_avail
                         most_bottlnecked_edge = tuple([chosen_path[l],chosen_path[r]])
                      
@@ -136,7 +136,8 @@ class Workload:
         l=0; r=1
 
         while r < len(path_combined):
-            edges.update([tuple([path_combined[l], path_combined[r]])]) # duplicates will be ignored
+            if path_combined[l] != path_combined[r]:
+                edges.update([tuple([path_combined[l], path_combined[r]])]) # duplicates will be ignored
             r+=1
             l+=1
 
@@ -158,9 +159,14 @@ class Workload:
             # here i calculate how much time is needed with the new speed
             total_gigs = self.time_to_finish_s*self.gigabit_s
             new_time_to_finish = total_gigs * most_bottlnecked_edge_cap # I use the most bottlenecked link as reference
+    
+            if new_time_to_finish == 0:
+                raise Exception("Network too busy, workload on hold!")
+            
             self.time_to_finish_s = new_time_to_finish
             print(f"time to finish after {self.time_to_finish_s}")
             #-------------------
+
             
         print(f"All_Paths {self.all_paths}")
         print("edge weights")
@@ -169,14 +175,24 @@ class Workload:
 
     def terminate(self,G):
         # terminate workload
+        paths = [x for _,x in self.all_paths.items()] # I need to break this into edges and deal with all of them for band reduction
+        path_combined = list(itertools.chain.from_iterable(paths)) # combine paths together for processing
+        edges = set()
+        l=0; r=1
 
-        for path in self.all_paths:
-            l = 0; r = 1
-            
-            while r < len(path):
-                G.edges[tuple([path[l],path[r]])]['weight']+= self.gigabit_s
+        while r < len(path_combined):
+            if path_combined[l] != path_combined[r]:
+                edges.update([tuple([path_combined[l], path_combined[r]])]) # duplicates will be ignored
+            r+=1
+            l+=1
+
+        for edge in edges:
+            G.edges[edge]['weight']+= self.gigabit_s
+                
 
         print(f"Workload has terminated! Workload duration = {time.time()-self.start_time} ")
+        status = nx.get_edge_attributes(G, "weight")
+        print(f"Current network status: {status}")
 
 
 

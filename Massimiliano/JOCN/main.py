@@ -9,7 +9,8 @@ import time
 if __name__ == "__main__":
 
     # store all the currently running workloads 
-    workloads = []
+    workloads_deployed = []
+    workloads_on_hold = []
 
     num_tors_v = 2
     num_tors_h = num_tors_v
@@ -30,6 +31,11 @@ if __name__ == "__main__":
         --------------------------------
         """)
 
+        print(f""" 
+        Number of workloads on hold: {len(workloads_on_hold)}
+        Workloads on hold: {[workload.name for workload in workloads_on_hold]}
+        """)
+
         # Ask user what they want to do 
         print("1- Check status of workload")
         print("2- Deploy new workload")
@@ -38,10 +44,10 @@ if __name__ == "__main__":
         if choice == "1":
             #For every old workload we need to check if they have expired 
             cur_time = time.time()
-            for workload in workloads:
+            for workload in workloads_deployed:
                 if cur_time - workload.start_time >= workload.time_to_finish_s:
                     workload.terminate(G)
-                    workloads.remove(workload)
+                    workloads_deployed.remove(workload)
                 else:
                     print("--------------")
                     print(f"Workload {workload.name} started at {workload.start_time}")
@@ -70,7 +76,16 @@ if __name__ == "__main__":
             
             # Now that we have our traffic matrix, we can route the workload the user requested
             workload.route(G)
-            workload.start(G)
-            workloads.append(workload)
+
+            # If the network is too busy catch the exception and restore band 
+            try:
+                workload.start(G)
+                workloads_deployed.append(workload)
+            
+            except Exception:
+                workload.terminate(G)
+                workloads_on_hold.append(workload)
+            
+            
 
         
