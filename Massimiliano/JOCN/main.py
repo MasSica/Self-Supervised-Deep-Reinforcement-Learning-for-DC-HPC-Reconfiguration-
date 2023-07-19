@@ -50,8 +50,8 @@ if __name__ == "__main__":
                     workloads_deployed.remove(workload)
                 else:
                     print("--------------")
-                    print(f"Workload {workload.name} started at {workload.start_time}")
-                    print(f"Time remaining {workload.time_to_finish_s-(cur_time-workload.start_time)}")
+                    print(f"Workload {workload.name}")
+                    print(f"Time remaining {'%.3f'%(workload.time_to_finish_s-(cur_time-workload.start_time))}")
                     print("--------------")
                     time.sleep(1)
 
