@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# @Time    : 22.09.21
+# @Author  : massica
+
 """
 This class will implement a workload simulator for our topology:
 - *args represents the arbitrary number of tors involved in the workload's processing
@@ -8,6 +12,8 @@ This class will implement a workload simulator for our topology:
 - to_be_allocated is used to understand how much traffic is not flowing  
 - start_time is used to record when the workload has begun
 """
+
+
 import networkx as nx 
 import time as time 
 import itertools
@@ -92,7 +98,6 @@ class Workload:
                             self.all_paths[(i,j)] = chosen_path 
         return 
 
-    
     def start(self, G:nx.DiGraph)->None:
         """
         This function will take care of updating the graph band and tracking the amount of traffic
@@ -101,6 +106,7 @@ class Workload:
         self.start_time = time.time()
         most_bottlnecked_edge_cap = 100  # the value set in the topology class 
         most_bottlnecked_edge = None
+        slowed = False  # This flag tells us if the workload has been slowed or not 
 
         for _, chosen_path in self.all_paths.items():
             # step 3 - update graph bandwidth 
@@ -158,20 +164,22 @@ class Workload:
             print(f"time to finish before {self.time_to_finish_s}")
             # here i calculate how much time is needed with the new speed
             total_gigs = self.time_to_finish_s*self.gigabit_s
-            new_time_to_finish = total_gigs * most_bottlnecked_edge_cap # I use the most bottlenecked link as reference
+            new_time_to_finish = total_gigs * (1/most_bottlnecked_edge_cap) # I use the most bottlenecked link as reference
     
             if new_time_to_finish == 0:
                 raise Exception("Network too busy, workload on hold!")
             
             self.time_to_finish_s = new_time_to_finish
             print(f"time to finish after {self.time_to_finish_s}")
+            slowed = True
             #-------------------
 
             
         print(f"All_Paths {self.all_paths}")
         print("edge weights")
         print(nx.get_edge_attributes(G, "weight"))
-        return 
+        
+        return slowed
 
     def terminate(self,G):
         # terminate workload
@@ -190,9 +198,53 @@ class Workload:
             G.edges[edge]['weight']+= self.gigabit_s
                 
 
-        print(f"Workload has terminated! Workload duration = {time.time()-self.start_time} ")
+        print(f"Workload {self.name} has terminated! Workload duration = {time.time()-self.start_time} ")
         status = nx.get_edge_attributes(G, "weight")
         print(f"Current network status: {status}")
+
+    def update_ttf_slowed(self,G):
+        """
+        This function takes care of updating the time to finish of a workload which was slowed down 
+        before 
+        """
+        # edge analysis 
+
+        paths = [x for _,x in self.all_paths.items()] # I need to break this into edges and deal with all of them for band reduction
+        path_combined = list(itertools.chain.from_iterable(paths)) # combine paths together for processing
+        edges = set()
+        
+        l=0; r=1
+
+        while r < len(path_combined):
+            if path_combined[l] != path_combined[r]:
+                edges.update([tuple([path_combined[l], path_combined[r]])]) # duplicates will be ignored
+            r+=1
+            l+=1
+        
+        most_bottlenecked_edge_band = 100  #default value for ToR links
+
+        # check for the bottleneck link in the current path and use it to calculate new ttf
+
+        for edge in edges:
+            if G.edges[edge]['weight'] <= most_bottlenecked_edge_band:
+                most_bottlenecked_edge_band = G.edges[edge]['weight']
+        
+        # perform new calculations 
+
+        total_gigs = self.to_be_allocated*self.time_to_finish
+        self.time_to_finish_s = total_gigs * (1/most_bottlenecked_edge_band) # Gb * s/Gb
+
+        print("--------------------")
+        print(f"Workload {self.name} has been sped up. New ttf {self.time_to_finish_s}")
+        print("--------------------")
+
+         
+
+
+
+
+
+
 
 
 

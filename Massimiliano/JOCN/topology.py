@@ -1,9 +1,10 @@
-"""This file contains the class implementing 
-a customizable datacenter network topology with one OCS"""
 
 # -*- coding: utf-8 -*-
 # @Time    : 22.09.21
 # @Author  : sansingh, massica
+
+"""This file contains the class implementing 
+a customizable datacenter network topology with one OCS"""
 
 import numpy as np
 import sys

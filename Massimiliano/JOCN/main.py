@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# @Time    : 22.09.21
+# @Author  : massica
+
 """This file brings all the components of the program together and 
 allows the user to run the simulation"""
 
@@ -11,6 +15,7 @@ if __name__ == "__main__":
     # store all the currently running workloads 
     workloads_deployed = []
     workloads_on_hold = []
+    workloads_slowed = []
 
     num_tors_v = 2
     num_tors_h = num_tors_v
@@ -35,6 +40,11 @@ if __name__ == "__main__":
         Number of workloads on hold: {len(workloads_on_hold)}
         Workloads on hold: {[workload.name for workload in workloads_on_hold]}
         """)
+        print(f""" 
+        Number of workloads slowed: {len(workloads_slowed)}
+        Workloads on hold: {[workload.name for workload in workloads_slowed]}
+        """)
+        
 
         # Ask user what they want to do 
         print("1- Check status of workload")
@@ -46,8 +56,13 @@ if __name__ == "__main__":
             cur_time = time.time()
             for workload in workloads_deployed:
                 if cur_time - workload.start_time >= workload.time_to_finish_s:
-                    workload.terminate(G)
+                    workload.terminate(G)  # if the workload has terminated, end it
                     workloads_deployed.remove(workload)
+
+                    # check if other workloads can be sped up
+                    for slow_workload in workloads_slowed:
+                        slow_workload.update_ttf_slowed()
+
                 else:
                     print("--------------")
                     print(f"Workload {workload.name}")
@@ -79,8 +94,11 @@ if __name__ == "__main__":
 
             # If the network is too busy catch the exception and restore band 
             try:
-                workload.start(G)
+                slowed = workload.start(G)  # start the workload and get if slowed or not
                 workloads_deployed.append(workload)
+
+                if slowed:
+                    workloads_slowed.append(workload)
             
             except Exception:
                 workload.terminate(G)
