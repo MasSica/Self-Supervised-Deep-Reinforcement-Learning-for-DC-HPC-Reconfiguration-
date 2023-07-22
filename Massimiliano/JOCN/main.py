@@ -8,6 +8,7 @@ allows the user to run the simulation"""
 from Workload import Workload
 from topology import TopologyGenerator
 import time 
+import networkx as nx 
 
 
 if __name__ == "__main__":
@@ -52,23 +53,27 @@ if __name__ == "__main__":
         choice = input()
 
         if choice == "1":
-            #For every old workload we need to check if they have expired 
-            cur_time = time.time()
-            for workload in workloads_deployed:
-                if cur_time - workload.start_time >= workload.time_to_finish_s:
-                    workload.terminate(G)  # if the workload has terminated, end it
-                    workloads_deployed.remove(workload)
 
-                    # check if other workloads can be sped up
-                    for slow_workload in workloads_slowed:
-                        slow_workload.update_ttf_slowed()
+            while True:
+                #For every old workload we need to check if they have expired 
+                cur_time = time.time()
+                for workload in workloads_deployed:
+                    if cur_time - workload.start_time >= workload.time_to_finish_s:
+                        workload.terminate(G)  # if the workload has terminated, end it
+                        workloads_deployed.remove(workload)
+                        print(nx.get_edge_attributes(G, "weight"))
 
-                else:
-                    print("--------------")
-                    print(f"Workload {workload.name}")
-                    print(f"Time remaining {'%.3f'%(workload.time_to_finish_s-(cur_time-workload.start_time))}")
-                    print("--------------")
-                    time.sleep(1)
+
+                        # check if other workloads can be sped up
+                        for slow_workload in workloads_slowed:
+                            slow_workload.update_ttf_slowed(G)
+
+                    else:
+                        print("--------------")
+                        print(f"Workload {workload.name}")
+                        print(f"Time remaining {'%.3f'%(workload.time_to_finish_s-(cur_time-workload.start_time))}")
+                        print("--------------")
+                        time.sleep(1)
 
         if choice == "2":
             # Ask user to deploy a workload 

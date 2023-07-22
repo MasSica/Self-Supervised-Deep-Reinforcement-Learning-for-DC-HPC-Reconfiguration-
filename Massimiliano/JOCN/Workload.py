@@ -181,6 +181,7 @@ class Workload:
         
         return slowed
 
+    # INVESTIGATE: SET MAY IGNORE SOME EDGES WHICH ARE NECESSARY, HENCE THE ERROR IN BAND RESTORATION
     def terminate(self,G):
         # terminate workload
         paths = [x for _,x in self.all_paths.items()] # I need to break this into edges and deal with all of them for band reduction
@@ -231,7 +232,7 @@ class Workload:
         
         # perform new calculations 
 
-        total_gigs = self.to_be_allocated*self.time_to_finish
+        total_gigs = self.to_be_allocated*self.time_to_finish_s
         self.time_to_finish_s = total_gigs * (1/most_bottlenecked_edge_band) # Gb * s/Gb
 
         print("--------------------")
