@@ -5,12 +5,11 @@
 """This file brings all the components of the program together and 
 allows the user to run the simulation"""
 
-# KEEP DEBUGGING 
-
 from Workload import Workload
 from topology import TopologyGenerator
-import time 
 import networkx as nx 
+import time 
+
 
 
 if __name__ == "__main__":
@@ -62,6 +61,7 @@ if __name__ == "__main__":
                     if cur_time - workload.start_time >= workload.time_to_finish_s:
                         workload.terminate(G)  # if the workload has terminated, end it
                         workloads_deployed.remove(workload)
+                        workloads_slowed.remove(workload) if workload in workloads_slowed else workloads_slowed
                         print(nx.get_edge_attributes(G, "weight"))
 
                         # check if other workloads can be sped up

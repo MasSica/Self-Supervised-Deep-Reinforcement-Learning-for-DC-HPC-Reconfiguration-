@@ -9,8 +9,9 @@ This class will implement a workload simulator for our topology:
 - time_to_finish is the amount of seconds that the workload has to run at full speed to complete
 - gigabit_s is the amount of gigabit per second that the workload needs to finish in time_to_finish seconds
 - all_paths will be used to record where each workload is flowing
-- to_be_allocated is used to understand how much traffic is not flowing  
-- start_time is used to record when the workload has begun
+- to_be_allocated: amount of traffic in Gb/s to be allocated into the network   
+- initial_time is used to record when the workload has begun
+- start_time is used to keep track of the gigabits served at every time instant 
 - new_gigabit_s is used to record the new velocity after slowing down the workload 
 """
 
@@ -33,8 +34,9 @@ class Workload:
         self.new_gigabit_s = gigabit_s
         self.gigabit_s = gigabit_s
         self.all_paths = {}
-        self.to_be_allocated = self.gigabit_s
+        self.to_be_allocated = self.gigabit_s 
         self.start_time = None
+        self.initial_time = None
 
         for arg in args:
             self.tors.append(arg)
@@ -106,6 +108,7 @@ class Workload:
         being served at every timestep
         """
         self.start_time = time.time()
+        self.initial_time = time.time()
         most_bottlnecked_edge_cap = 100  # the value set in the topology class 
         most_bottlnecked_edge = None
         slowed = False  # This flag tells us if the workload has been slowed or not 
@@ -155,12 +158,14 @@ class Workload:
         # process edge by edge and subtract bandwidth (here I should add back the original band to avoid subtracting twice!)
         if most_bottlnecked_edge != None:
             
+            self.to_be_allocated -= most_bottlnecked_edge_cap # I still need to allocate the rest of the band 
+            
             for edge in edges: 
                 band_avail = G.edges[edge]['weight']
-                self.to_be_allocated -= band_avail
+                #self.to_be_allocated -= band_avail
                 
                 if G.edges[edge]['weight'] > self.gigabit_s:
-                    G.edges[edge]['weight']-= self.gigabit_s
+                    G.edges[edge]['weight']-= most_bottlnecked_edge_cap
                 else:
                     G.edges[edge]['weight']=0
 
@@ -182,6 +187,7 @@ class Workload:
 
         # if the workload is not slowed, subtract original gigabit_s value
         else: 
+            self.to_be_allocated -= self.gigabit_s
             for edge in to_reduce:
                 G.edges[edge]['weight'] -= self.gigabit_s
 
@@ -206,10 +212,10 @@ class Workload:
             l+=1
 
         for edge in edges:
-            G.edges[edge]['weight']+= self.new_gigabit_s # add current speed not gigabit/s!!!
+            G.edges[edge]['weight']+= self.new_gigabit_s 
                 
 
-        print(f"Workload {self.name} has terminated! Workload duration = {time.time()-self.start_time} ")
+        print(f"Workload {self.name} has terminated! Workload duration = {time.time()-self.initial_time} ") 
         status = nx.get_edge_attributes(G, "weight")
         print(f"Current network status: {status}")
 
@@ -240,11 +246,12 @@ class Workload:
             if G.edges[edge]['weight'] <= most_bottlenecked_edge_band:
                 most_bottlenecked_edge_band = G.edges[edge]['weight']
         
-        # perform new calculations (SELF.TOBEALLOCATED IS NEGATIVE!!! INVESTIGATE!)
+        # perform new calculations
 
-        total_gigs = self.to_be_allocated*self.time_to_finish_s
+        new_time = time.time()
+        total_gigs = self.to_be_allocated*(new_time-self.start_time) 
         self.time_to_finish_s = total_gigs * (1/most_bottlenecked_edge_band) # Gb * s/Gb
-
+        self.start_time = new_time # I will have to wait x seconds from this time
         print("--------------------")
         print(f"Workload {self.name} has been sped up. New ttf {self.time_to_finish_s}")
         print("--------------------")
