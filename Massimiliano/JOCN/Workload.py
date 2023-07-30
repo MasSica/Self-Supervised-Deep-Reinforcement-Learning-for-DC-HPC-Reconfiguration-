@@ -11,6 +11,7 @@ This class will implement a workload simulator for our topology:
 - all_paths will be used to record where each workload is flowing
 - to_be_allocated is used to understand how much traffic is not flowing  
 - start_time is used to record when the workload has begun
+- new_gigabit_s is used to record the new velocity after slowing down the workload 
 """
 
 
@@ -29,6 +30,7 @@ class Workload:
         self.tm_size = self.tm_matrix_size_h * self.tm_matrix_size_w
         self.tm = [[0 for i in range(self.tm_size)] for j in range(self.tm_size)]
         self.time_to_finish_s = time_to_finish_s
+        self.new_gigabit_s = gigabit_s
         self.gigabit_s = gigabit_s
         self.all_paths = {}
         self.to_be_allocated = self.gigabit_s
@@ -111,13 +113,15 @@ class Workload:
         for _, chosen_path in self.all_paths.items():
             # step 3 - update graph bandwidth 
             l = 0; r = 1
+            to_reduce = []
             
             while r < len(chosen_path):
 
                 band_avail = G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']
 
+                # I rememeber which edges need subtraction to reduce later
                 if self.gigabit_s <= band_avail:
-                    G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']-= self.gigabit_s
+                    to_reduce.append(tuple([chosen_path[l],chosen_path[r]])) 
 
                 # Find the edge creating the strongest bottleneck and use it for the computation
 
@@ -147,16 +151,16 @@ class Workload:
             r+=1
             l+=1
 
-        # process edge by edge and subtract bandwidth
-
+        # if the workload is slowed
+        # process edge by edge and subtract bandwidth (here I should add back the original band to avoid subtracting twice!)
         if most_bottlnecked_edge != None:
-
-            for edge in edges:
+            
+            for edge in edges: 
                 band_avail = G.edges[edge]['weight']
                 self.to_be_allocated -= band_avail
                 
-                if G.edges[edge]['weight'] > band_avail:
-                    G.edges[edge]['weight']-= band_avail
+                if G.edges[edge]['weight'] > self.gigabit_s:
+                    G.edges[edge]['weight']-= self.gigabit_s
                 else:
                     G.edges[edge]['weight']=0
 
@@ -170,18 +174,24 @@ class Workload:
                 raise Exception("Network too busy, workload on hold!")
             
             self.time_to_finish_s = new_time_to_finish
-            print(f"time to finish after {self.time_to_finish_s}")
+            self.new_gigabit_s = most_bottlnecked_edge_cap # data is sent at the lowest rate
+            print(f"Time to finish after {self.time_to_finish_s}")
+            print(f"New speed {self.new_gigabit_s}")
             slowed = True
             #-------------------
 
-            
+        # if the workload is not slowed, subtract original gigabit_s value
+        else: 
+            for edge in to_reduce:
+                G.edges[edge]['weight'] -= self.gigabit_s
+
+
         print(f"All_Paths {self.all_paths}")
         print("edge weights")
         print(nx.get_edge_attributes(G, "weight"))
         
         return slowed
 
-    # INVESTIGATE: SET MAY IGNORE SOME EDGES WHICH ARE NECESSARY, HENCE THE ERROR IN BAND RESTORATION
     def terminate(self,G):
         # terminate workload
         paths = [x for _,x in self.all_paths.items()] # I need to break this into edges and deal with all of them for band reduction
@@ -196,7 +206,7 @@ class Workload:
             l+=1
 
         for edge in edges:
-            G.edges[edge]['weight']+= self.gigabit_s
+            G.edges[edge]['weight']+= self.new_gigabit_s # add current speed not gigabit/s!!!
                 
 
         print(f"Workload {self.name} has terminated! Workload duration = {time.time()-self.start_time} ")
@@ -230,7 +240,7 @@ class Workload:
             if G.edges[edge]['weight'] <= most_bottlenecked_edge_band:
                 most_bottlenecked_edge_band = G.edges[edge]['weight']
         
-        # perform new calculations 
+        # perform new calculations (SELF.TOBEALLOCATED IS NEGATIVE!!! INVESTIGATE!)
 
         total_gigs = self.to_be_allocated*self.time_to_finish_s
         self.time_to_finish_s = total_gigs * (1/most_bottlenecked_edge_band) # Gb * s/Gb

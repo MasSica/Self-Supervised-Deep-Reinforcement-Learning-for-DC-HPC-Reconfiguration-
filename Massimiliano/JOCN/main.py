@@ -5,6 +5,8 @@
 """This file brings all the components of the program together and 
 allows the user to run the simulation"""
 
+# KEEP DEBUGGING 
+
 from Workload import Workload
 from topology import TopologyGenerator
 import time 
@@ -46,7 +48,6 @@ if __name__ == "__main__":
         Workloads on hold: {[workload.name for workload in workloads_slowed]}
         """)
         
-
         # Ask user what they want to do 
         print("1- Check status of workload")
         print("2- Deploy new workload")
@@ -62,7 +63,6 @@ if __name__ == "__main__":
                         workload.terminate(G)  # if the workload has terminated, end it
                         workloads_deployed.remove(workload)
                         print(nx.get_edge_attributes(G, "weight"))
-
 
                         # check if other workloads can be sped up
                         for slow_workload in workloads_slowed:
