@@ -44,7 +44,7 @@ if __name__ == "__main__":
         """)
         print(f""" 
         Number of workloads slowed: {len(workloads_slowed)}
-        Workloads on hold: {[workload.name for workload in workloads_slowed]}
+        Workloads slowed: {[workload.name for workload in workloads_slowed]}
         """)
         
         # Ask user what they want to do 
@@ -66,8 +66,19 @@ if __name__ == "__main__":
 
                         # check if other workloads can be sped up
                         for slow_workload in workloads_slowed:
-                            slow_workload.update_ttf_slowed(G)
-
+                            full_speed = slow_workload.update_ttf_slowed(G)
+                            # add check if workload is going at full speed
+                            if full_speed:
+                                workloads_slowed.remove(slow_workload)
+                        
+                        # deal with workloads on hold
+                        for workload_on_hold in workloads_on_hold:
+                            try:
+                                slowed = workload_on_hold.start(G)  # start the workload and get if slowed or not
+                                if slowed:
+                                   workloads_slowed.append(workload_on_hold)
+                            except Exception:
+                                workload_on_hold.terminate(G)
                     else:
                         print("--------------")
                         print(f"Workload {workload.name}")

@@ -162,7 +162,6 @@ class Workload:
             
             for edge in edges: 
                 band_avail = G.edges[edge]['weight']
-                #self.to_be_allocated -= band_avail
                 
                 if G.edges[edge]['weight'] > self.gigabit_s:
                     G.edges[edge]['weight']-= most_bottlnecked_edge_cap
@@ -245,6 +244,11 @@ class Workload:
         for edge in edges:
             if G.edges[edge]['weight'] <= most_bottlenecked_edge_band:
                 most_bottlenecked_edge_band = G.edges[edge]['weight']
+
+
+        # check if congestion status has worsened wrt intitial setup due to other workloads
+        if most_bottlenecked_edge_band == 0:
+            return False 
         
         # perform new calculations
 
@@ -255,6 +259,10 @@ class Workload:
         print("--------------------")
         print(f"Workload {self.name} has been sped up. New ttf {self.time_to_finish_s}")
         print("--------------------")
+
+        # check if workload is running at full speed 
+        if most_bottlenecked_edge_band == self.gigabit_s:
+            return True
 
          
 
