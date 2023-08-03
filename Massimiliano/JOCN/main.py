@@ -7,19 +7,41 @@ allows the user to run the simulation"""
 
 from Workload import Workload
 from topology import TopologyGenerator
+from DQN_Trainer import DQN
 import networkx as nx 
 import time 
 
-
+"""
+notes:
+- need to define the concept of network crash for radrl 
+- create a workload generator to automatize the procedure 
+"""
 
 if __name__ == "__main__":
+
+    ## DRL specific variables 
+    # reconfiguration threshold defined in terms of workloads oh hold and slowed
+    RECONF_THR = {
+        'on hold': 1,
+        'slowed': 1
+    }
+
+    NUM_WORLOADS = 5 # this is the number of workloads that will be deployed in the network 
+
+    STATE_SPACE = [[0 for _ in range(NUM_WORLOADS)] for _ in range(NUM_WORLOADS)] # My state space is dynamic and will depend on the number of workloads on hold and slowed
+    
+    # Now I need to ohe the state space 
+    for i in range(len(STATE_SPACE[0])):
+        for j in range(len(STATE_SPACE[1])):
+            if i == j:
+                STATE_SPACE[i][j] = 1
 
     # store all the currently running workloads 
     workloads_deployed = []
     workloads_on_hold = []
     workloads_slowed = []
 
-    num_tors_v = 2
+    num_tors_v = 2 #2 
     num_tors_h = num_tors_v
     num_tors = num_tors_h*num_tors_v
 
@@ -54,7 +76,16 @@ if __name__ == "__main__":
 
         if choice == "1":
 
+            cur_state = STATE_SPACE[(len(workloads_slowed)+len(workloads_on_hold))]
+
             while True:
+                # check if reconfiguration is needed 
+                if len(workload_on_hold) == RECONF_THR['on hold'] or len(workloads_slowed) ==RECONF_THR['slowed']:
+                    # reconfigure
+                    DQN.take_action()
+                    # reroute everything 
+
+
                 #For every old workload we need to check if they have expired 
                 cur_time = time.time()
                 for workload in workloads_deployed:

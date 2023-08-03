@@ -80,7 +80,7 @@ class Workload:
             for j in range(len(self.tm[0])):                
                 if self.tm[i][j] != 0:  
                     
-                    # step 1 - get all possible paths for the demand 
+                    # step 1 - get all possible paths for the demand FIX! TOO computationally intensive
                     paths = list(nx.all_simple_paths(G, source=i, target=j))
 
                     # step 2 - pick the one with the most available bandwidth 
