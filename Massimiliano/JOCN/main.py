@@ -10,6 +10,7 @@ from topology import TopologyGenerator
 from DQN_Trainer import DQN
 import networkx as nx 
 import time 
+import torch
 
 """
 notes:
@@ -40,6 +41,9 @@ if __name__ == "__main__":
     workloads_deployed = []
     workloads_on_hold = []
     workloads_slowed = []
+
+    # create DQN trainer
+    DQN_model = DQN(10,STATE_SPACE )
 
     num_tors_v = 2 #2 
     num_tors_h = num_tors_v
@@ -80,36 +84,54 @@ if __name__ == "__main__":
 
             while True:
                 # check if reconfiguration is needed 
-                if len(workload_on_hold) == RECONF_THR['on hold'] or len(workloads_slowed) ==RECONF_THR['slowed']:
+                if len(workloads_on_hold) == RECONF_THR['on hold'] or len(workloads_slowed) ==RECONF_THR['slowed']:
                     # reconfigure
-                    DQN.take_action()
-                    # reroute everything 
+                    print("RECONFIGURING!")
+                    state_tensor = torch.tensor(cur_state,dtype=torch.float, requires_grad=True)
+                    DQN_model.take_action(cur_state)
+                    # reroute everything
+                    all_workloads = workloads_deployed + workloads_slowed + workloads_on_hold
+                    G, connectivity_h, connetivity_v = topology_gen.get_graph() # reset G
+                    for workload in all_workloads:
+                        workload.route(G) 
+                        try:
+                            slowed = workload.start(G)  # start the workload and get if slowed or not
+                            workloads_deployed.append(workload)
 
+                            if slowed:
+                                workloads_slowed.append(workload)
+            
+                        except Exception:
+                            workload.terminate(G)
+                            workloads_on_hold.append(workload)
+                    
+                    # here I will need to compute the reward
 
-                #For every old workload we need to check if they have expired 
-                cur_time = time.time()
-                for workload in workloads_deployed:
-                    if cur_time - workload.start_time >= workload.time_to_finish_s:
-                        workload.terminate(G)  # if the workload has terminated, end it
-                        workloads_deployed.remove(workload)
-                        workloads_slowed.remove(workload) if workload in workloads_slowed else workloads_slowed
-                        print(nx.get_edge_attributes(G, "weight"))
+                else:
+                    #For every old workload we need to check if they have expired 
+                    cur_time = time.time()
+                    for workload in workloads_deployed:
+                        if cur_time - workload.start_time >= workload.time_to_finish_s:
+                            workload.terminate(G)  # if the workload has terminated, end it
+                            workloads_deployed.remove(workload)
+                            workloads_slowed.remove(workload) if workload in workloads_slowed else workloads_slowed
+                            print(nx.get_edge_attributes(G, "weight"))
 
-                        # check if other workloads can be sped up
-                        for slow_workload in workloads_slowed:
-                            full_speed = slow_workload.update_ttf_slowed(G)
-                            # add check if workload is going at full speed
-                            if full_speed:
-                                workloads_slowed.remove(slow_workload)
-                        
-                        # deal with workloads on hold
-                        for workload_on_hold in workloads_on_hold:
-                            try:
-                                slowed = workload_on_hold.start(G)  # start the workload and get if slowed or not
-                                if slowed:
-                                   workloads_slowed.append(workload_on_hold)
-                            except Exception:
-                                workload_on_hold.terminate(G)
+                            # check if other workloads can be sped up
+                            for slow_workload in workloads_slowed:
+                                full_speed = slow_workload.update_ttf_slowed(G)
+                                # add check if workload is going at full speed
+                                if full_speed:
+                                    workloads_slowed.remove(slow_workload)
+                            
+                            # deal with workloads on hold
+                            for workload_on_hold in workloads_on_hold:
+                                try:
+                                    slowed = workload_on_hold.start(G)  # start the workload and get if slowed or not
+                                    if slowed:
+                                        workloads_slowed.append(workload_on_hold)
+                                except Exception:
+                                    workload_on_hold.terminate(G)
                     else:
                         print("--------------")
                         print(f"Workload {workload.name}")

@@ -9,11 +9,11 @@ import random
 
 class DQN:
 
-    def __init__(self, buffer):
+    def __init__(self, buffer, state):
 
         # the sizes are fixed
         self.buffer = buffer
-        self.state_size = 4 #check
+        self.state_size = len(state)
         self.action_size = 6 
 
         # we define hyperparameters
