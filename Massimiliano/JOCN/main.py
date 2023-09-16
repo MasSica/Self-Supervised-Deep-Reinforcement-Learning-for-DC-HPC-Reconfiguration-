@@ -28,7 +28,7 @@ if __name__ == "__main__":
         'slowed': 1
     }
 
-    NUM_WORLOADS = 5 # this is the number of workloads that will be deployed in the network 
+    NUM_WORLOADS = 2 # this is the number of workloads that will be deployed in the network 
 
     # My state space is dynamic and will depend on the number of workloads on hold and slowed
     STATE_SPACE = [[0 for _ in range(NUM_WORLOADS)] for _ in range(NUM_WORLOADS)] 

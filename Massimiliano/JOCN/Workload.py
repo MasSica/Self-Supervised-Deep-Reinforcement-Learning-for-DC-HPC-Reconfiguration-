@@ -193,6 +193,7 @@ class Workload:
 
         # if the workload is not slowed, subtract original gigabit_s value
         else: 
+            self.time_to_finish = self.total_gigs/self.new_gigabit_s
             self.to_be_allocated -= self.gigabit_s
             for edge in to_reduce:
                 G.edges[edge]['weight'] -= self.gigabit_s

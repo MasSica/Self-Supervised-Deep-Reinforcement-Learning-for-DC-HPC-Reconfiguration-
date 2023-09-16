@@ -14,7 +14,7 @@ class DQN:
         # the sizes are fixed
         self.buffer = buffer
         self.state_size = len(state)
-        self.action_size = 1#6 
+        self.action_size = 2#6 
 
         # we define hyperparameters
 
@@ -44,7 +44,7 @@ class DQN:
         # check notability for pics 
 
         self.action_space = [
-            #[[0,1,1,0],[1,0,0,1],[1,0,0,1],[0,1,1,0]],
+            [[0,1,1,0],[1,0,0,1],[1,0,0,1],[0,1,1,0]],
             #[[0,1,0,1],[1,0,1,0],[0,1,0,1],[1,1,0,0]],
             #[[0,1,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0]],
             #[[0,1,0,1],[1,0,1,0],[0,1,0,0],[1,0,0,0]],
