@@ -48,8 +48,8 @@ class DQN:
             #[[0,1,0,1],[1,0,1,0],[0,1,0,1],[1,1,0,0]],
             #[[0,1,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0]],
             #[[0,1,0,1],[1,0,1,0],[0,1,0,0],[1,0,0,0]],
-            [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
-            #[[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]]
+            #[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
+            [[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]]
         ]
 
 
@@ -77,7 +77,7 @@ class DQN:
             target_param.data.copy_(target_param.data * (1.0 - self.tau) + param.data * self.tau)
 
 
-    def update_parameters(self, episode):
+    def update_parameters(self):
 
         # actor loss vector
         # sample minibatch of transitions

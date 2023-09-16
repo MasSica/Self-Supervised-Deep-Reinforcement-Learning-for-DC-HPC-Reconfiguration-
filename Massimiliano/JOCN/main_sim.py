@@ -45,7 +45,7 @@ if __name__ == "__main__":
     workloads_slowed = []
 
     # create DQN trainer
-    DQN_model = DQN(10,STATE_SPACE )
+    DQN_model = DQN(10,STATE_SPACE)
 
     num_tors_v = 2 #2 
     num_tors_h = num_tors_v
@@ -126,7 +126,7 @@ if __name__ == "__main__":
                     #For every old workload we need to check if they have expired 
                     cur_time = time.time()
                     for workload in workloads_deployed:
-                        if workload.time_to_finish == 0:
+                        if workload.time_to_finish -(cur_time-workload.start_time) <= 0:
                             workload.terminate(G)  # if the workload has terminated, end it
                             workloads_deployed.remove(workload)
                             workloads_slowed.remove(workload) if workload in workloads_slowed else workloads_slowed

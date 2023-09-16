@@ -195,7 +195,7 @@ class Workload:
         else: 
             self.time_to_finish = self.total_gigs/self.new_gigabit_s
             self.to_be_allocated -= self.gigabit_s
-            for edge in to_reduce:
+            for edge in edges: #to_reduce:
                 G.edges[edge]['weight'] -= self.gigabit_s
 
 
