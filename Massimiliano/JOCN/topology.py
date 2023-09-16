@@ -110,5 +110,20 @@ class TopologyGenerator:
         return G, self.connectivity_h, self.connectivity_v
 
 
+    def get_reconfig_graph(self, toplogy_matrix):
+        print('--------- GETTING NEW TOPOLOGY ------------')
+        print(toplogy_matrix)
+        G = nx.DiGraph()
+        nr_tor = self.num_tors_v* self.num_tors_h
+        G = nx.DiGraph()
+        G.add_nodes_from(list(range(nr_tor)))
 
+        for i in range(len(toplogy_matrix)):
+            for j in range(len(toplogy_matrix[0])):
+                if toplogy_matrix[i][j] == 1:
+                    G.add_edge(i, j, weight=100)
+        print("-------new edges-----------")
+        print(G.edges)
+        return G
 
+    

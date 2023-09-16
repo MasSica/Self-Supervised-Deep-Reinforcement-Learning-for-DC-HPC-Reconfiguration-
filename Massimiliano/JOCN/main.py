@@ -11,6 +11,7 @@ from DQN_Trainer import DQN
 import networkx as nx 
 import time 
 import torch
+import pandas as pd
 
 """
 notes:
@@ -29,7 +30,8 @@ if __name__ == "__main__":
 
     NUM_WORLOADS = 5 # this is the number of workloads that will be deployed in the network 
 
-    STATE_SPACE = [[0 for _ in range(NUM_WORLOADS)] for _ in range(NUM_WORLOADS)] # My state space is dynamic and will depend on the number of workloads on hold and slowed
+    # My state space is dynamic and will depend on the number of workloads on hold and slowed
+    STATE_SPACE = [[0 for _ in range(NUM_WORLOADS)] for _ in range(NUM_WORLOADS)] 
     
     # Now I need to ohe the state space 
     for i in range(len(STATE_SPACE[0])):
@@ -84,22 +86,35 @@ if __name__ == "__main__":
 
             while True:
                 # check if reconfiguration is needed 
-                if len(workloads_on_hold) == RECONF_THR['on hold'] or len(workloads_slowed) ==RECONF_THR['slowed']:
+                if len(workloads_on_hold) >= RECONF_THR['on hold'] or len(workloads_slowed) >= RECONF_THR['slowed']:
                     # reconfigure
                     print("RECONFIGURING!")
                     state_tensor = torch.tensor(cur_state,dtype=torch.float, requires_grad=True)
-                    DQN_model.take_action(cur_state)
+                    _, action = DQN_model.take_action(state_tensor)
                     # reroute everything
-                    all_workloads = workloads_deployed + workloads_slowed + workloads_on_hold
-                    G, connectivity_h, connetivity_v = topology_gen.get_graph() # reset G
-                    for workload in all_workloads:
-                        workload.route(G) 
-                        try:
-                            slowed = workload.start(G)  # start the workload and get if slowed or not
-                            workloads_deployed.append(workload)
+                    all_workloads = []
+                    all_workloads.extend(workloads_deployed)
+                    all_workloads.extend(workloads_on_hold)
+                    workloads_on_hold.clear()
+                    workloads_deployed.clear()
+                    workloads_slowed.clear()
 
-                            if slowed:
+                    G = topology_gen.get_reconfig_graph(action) # reset G
+
+                    for workload in all_workloads:
+                        print(workload.name)
+                        workload.reset_paths()
+                        workload.route(G)
+                        try:
+                            status = workload.start(G)  # start the workload and get if slowed or not
+
+                            if status == "slowed":
                                 workloads_slowed.append(workload)
+                                workloads_deployed.append(workload)
+                            elif status == "on hold":
+                                workloads_on_hold.append(workload)
+                            else:
+                                workloads_deployed.append(workload)
             
                         except Exception:
                             workload.terminate(G)
@@ -111,7 +126,7 @@ if __name__ == "__main__":
                     #For every old workload we need to check if they have expired 
                     cur_time = time.time()
                     for workload in workloads_deployed:
-                        if cur_time - workload.start_time >= workload.time_to_finish_s:
+                        if workload.time_to_finish == 0:
                             workload.terminate(G)  # if the workload has terminated, end it
                             workloads_deployed.remove(workload)
                             workloads_slowed.remove(workload) if workload in workloads_slowed else workloads_slowed
@@ -132,46 +147,49 @@ if __name__ == "__main__":
                                         workloads_slowed.append(workload_on_hold)
                                 except Exception:
                                     workload_on_hold.terminate(G)
-                    else:
-                        print("--------------")
-                        print(f"Workload {workload.name}")
-                        print(f"Time remaining {'%.3f'%(workload.time_to_finish_s-(cur_time-workload.start_time))}")
-                        print("--------------")
-                        time.sleep(1)
+                        else:
+                            print("--------------")
+                            print(f"Workload {workload.name}")
+                            print(f"Time remaining {'%.3f'%(workload.time_to_finish -(cur_time-workload.start_time))}")
+                            print("--------------")
+                            time.sleep(1)
 
         if choice == "2":
             # Ask user to deploy a workload 
-            print("Please provide workload information on each line: Name, Gigabit/s, Time to finish (seconds), ToRs involved ")
-            inputs = []
-            while True:
-                inp = input()
-                if inp == "":
-                    break
-                inputs.append(inp)
-            
-            ttf = float(inputs[2])
-            gbs = float(inputs[1])
-            name = inputs[0]
-            tors_involved = inputs[3:]
+            workloads = pd.read_csv(r"/Users/massimilianosica/Desktop/Research Work/Self-Supervised-Deep-Reinforcement-Learning-for-DC-HPC-Reconfiguration-/Massimiliano/JOCN/workloads.csv")
+            print(workloads.head(5))
+            for i in range(len(workloads)):
 
-            workload = Workload(name, num_tors_h, num_tors_v, ttf, gbs, *tors_involved)
-            tm = workload.fill_tm()
-            print(f"tm {tm}")
-            
-            # Now that we have our traffic matrix, we can route the workload the user requested
-            workload.route(G)
+                tg = float(workloads.loc[i, "total_gigs"])
+                gbs = float(workloads.loc[i, "gigabit"])
+                name = workloads.loc[i, "name"]
+                tors_involved = workloads.loc[i, "tors"].strip('][')
+                tors_involved = tors_involved.split(',')
+                workload = Workload(name, num_tors_h, num_tors_v, tg, gbs, *tors_involved)
+                tm = workload.fill_tm()
+                print(f"tm {tm}")
+                # Now that we have our traffic matrix, we can route the workload the user requested
+                workload.route(G)
+                # If the network is too busy catch the exception and restore band 
+                try:
+                    status = workload.start(G)  # start the workload and get if slowed or not
+                    if status == "slowed":
+                        workloads_slowed.append(workload)
+                        workloads_deployed.append(workload)
+                    elif status == "on hold":
+                        workloads_on_hold.append(workload)
+                    else:
+                        workloads_deployed.append(workload)
 
-            # If the network is too busy catch the exception and restore band 
-            try:
-                slowed = workload.start(G)  # start the workload and get if slowed or not
-                workloads_deployed.append(workload)
 
-                if slowed:
-                    workloads_slowed.append(workload)
+                except Exception as e:
+                    print(str(e))
+                    workload.terminate(G)
+                    workloads_on_hold.append(workload)
             
-            except Exception:
-                workload.terminate(G)
-                workloads_on_hold.append(workload)
+        
+
+            
             
             
 

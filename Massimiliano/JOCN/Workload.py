@@ -6,8 +6,8 @@
 This class will implement a workload simulator for our topology:
 - *args represents the arbitrary number of tors involved in the workload's processing
 - tm_matrix_size_h and _w are the rows and columns of the traffic matrix that we return to the main program
-- time_to_finish is the amount of seconds that the workload has to run at full speed to complete
-- gigabit_s is the amount of gigabit per second that the workload needs to finish in time_to_finish seconds
+- total_gigs is the total amount od data to be served
+- gigabit_s is the amount of gigabit per second that the workload needs 
 - all_paths will be used to record where each workload is flowing
 - to_be_allocated: amount of traffic in Gb/s to be allocated into the network   
 - initial_time is used to record when the workload has begun
@@ -22,7 +22,7 @@ import itertools
 
 class Workload:
     
-    def __init__(self,name:str, tm_matrix_size_h:int, tm_matrix_size_w:int, time_to_finish_s:float, gigabit_s:float, *args) -> None:
+    def __init__(self,name:str, tm_matrix_size_h:int, tm_matrix_size_w:int, total_gigs:int, gigabit_s:float, *args) -> None:
         
         self.name = name
         self.tors = []
@@ -30,11 +30,12 @@ class Workload:
         self.tm_matrix_size_w = tm_matrix_size_w
         self.tm_size = self.tm_matrix_size_h * self.tm_matrix_size_w
         self.tm = [[0 for i in range(self.tm_size)] for j in range(self.tm_size)]
-        self.time_to_finish_s = time_to_finish_s
+        self.total_gigs = total_gigs
         self.new_gigabit_s = gigabit_s
         self.gigabit_s = gigabit_s
         self.all_paths = {}
         self.to_be_allocated = self.gigabit_s 
+        self.time_to_finish = self.total_gigs/100 #100Gb/s is capacity of links 
         self.start_time = None
         self.initial_time = None
 
@@ -83,6 +84,9 @@ class Workload:
                     # step 1 - get all possible paths for the demand FIX! TOO computationally intensive
                     paths = list(nx.all_simple_paths(G, source=i, target=j))
 
+                    if len(paths)==0:
+                        return True
+
                     # step 2 - pick the one with the most available bandwidth 
                     chosen_path = paths[0]
                     max_cumulative_band = 0 # reset before processing new demand
@@ -113,11 +117,14 @@ class Workload:
         most_bottlnecked_edge = None
         slowed = False  # This flag tells us if the workload has been slowed or not 
 
+        if len(self.all_paths.items()) == 0:
+            print("no paths available, workload on hold")
+            return "on hold"
+
         for _, chosen_path in self.all_paths.items():
             # step 3 - update graph bandwidth 
             l = 0; r = 1
             to_reduce = []
-            
             while r < len(chosen_path):
 
                 band_avail = G.edges[tuple([chosen_path[l],chosen_path[r]])]['weight']
@@ -169,17 +176,17 @@ class Workload:
                     G.edges[edge]['weight']=0
 
             # ------------------
-            print(f"time to finish before {self.time_to_finish_s}")
+            print(f"Time to finish before {self.total_gigs*(1/self.new_gigabit_s)}")
+            #I need to get rid of the served gigabits 
+            self.total_gigs-= ((time.time()-self.start_time)*self.gigabit_s)
             # here i calculate how much time is needed with the new speed
-            total_gigs = self.time_to_finish_s*self.gigabit_s
-            new_time_to_finish = total_gigs * (1/most_bottlnecked_edge_cap) # I use the most bottlenecked link as reference
-    
-            if new_time_to_finish == 0:
+            self.time_to_finish = self.total_gigs * (1/most_bottlnecked_edge_cap) # I use the most bottlenecked link as reference
+
+            if self.time_to_finish == 0:
                 raise Exception("Network too busy, workload on hold!")
             
-            self.time_to_finish_s = new_time_to_finish
             self.new_gigabit_s = most_bottlnecked_edge_cap # data is sent at the lowest rate
-            print(f"Time to finish after {self.time_to_finish_s}")
+            print(f"Time to finish now {self.time_to_finish}")
             print(f"New speed {self.new_gigabit_s}")
             slowed = True
             #-------------------
@@ -195,7 +202,9 @@ class Workload:
         print("edge weights")
         print(nx.get_edge_attributes(G, "weight"))
         
-        return slowed
+        if slowed: 
+            return "slowed"
+        return
 
     def terminate(self,G):
         # terminate workload
@@ -252,17 +261,18 @@ class Workload:
         
         # perform new calculations
 
-        new_time = time.time()
-        total_gigs = self.to_be_allocated*(new_time-self.start_time) 
-        self.time_to_finish_s = total_gigs * (1/most_bottlenecked_edge_band) # Gb * s/Gb
-        self.start_time = new_time # I will have to wait x seconds from this time
+        self.time_to_finish = self.total_gigs * (1/most_bottlenecked_edge_band) # Gb * s/Gb
+        self.start_time = time.time() # I will have to wait x seconds from this time
         print("--------------------")
-        print(f"Workload {self.name} has been sped up. New ttf {self.time_to_finish_s}")
+        print(f"Workload {self.name} has been sped up. New ttf {self.time_to_finish}")
         print("--------------------")
 
         # check if workload is running at full speed 
         if most_bottlenecked_edge_band == self.gigabit_s:
             return True
+
+    def reset_paths(self):
+        self.all_paths.clear()
 
          
 
