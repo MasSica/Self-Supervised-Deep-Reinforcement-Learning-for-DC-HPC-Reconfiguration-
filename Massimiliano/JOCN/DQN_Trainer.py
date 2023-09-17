@@ -14,7 +14,7 @@ class DQN:
         # the sizes are fixed
         self.buffer = buffer
         self.state_size = len(state)
-        self.action_size = 6 
+        self.action_size = 7
 
         # we define hyperparameters
 
@@ -23,7 +23,7 @@ class DQN:
         self.batch = 4
         self.gamma = 0.99 #0.99
         self.tau = 1e-3
-        self.epsilon = 0.8  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
+        self.epsilon = 0.4  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
         self.eps_dec = 0.01
         self.eps_min = 0.001
 
@@ -43,13 +43,14 @@ class DQN:
         # template [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
         # check notability for pics 
 
-        self.action_space = [
-            [[0,1,1,0],[1,0,0,1],[1,0,0,1],[0,1,1,0]],
-            [[0,1,0,1],[1,0,1,0],[0,1,0,1],[1,1,0,0]],
+        self.action_space = [ 
+            [[0,1,0,1],[1,0,1,0],[0,1,0,1],[1,0,1,0]],
+            [[0,1,1,0],[1,0,0,1],[1,0,0,1],[0,1,1,0]], # best
             [[0,1,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0]],
             [[0,1,0,1],[1,0,1,0],[0,1,0,0],[1,0,0,0]],
             [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
-            [[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]]
+            [[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]],
+            [[0,1,1,0],[1,0,0,1],[1,0,0,0],[1,1,0,0]]
         ]
 
 
