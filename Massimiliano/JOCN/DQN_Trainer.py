@@ -14,7 +14,7 @@ class DQN:
         # the sizes are fixed
         self.buffer = buffer
         self.state_size = len(state)
-        self.action_size = 2#6 
+        self.action_size = 1#6 
 
         # we define hyperparameters
 
@@ -49,7 +49,7 @@ class DQN:
             #[[0,1,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0]],
             #[[0,1,0,1],[1,0,1,0],[0,1,0,0],[1,0,0,0]],
             #[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
-            [[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]]
+            #[[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]]
         ]
 
 

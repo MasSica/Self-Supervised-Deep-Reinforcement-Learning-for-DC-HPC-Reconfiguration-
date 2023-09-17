@@ -77,17 +77,24 @@ if __name__ == "__main__":
     # Initilize traffic matrix 
     tm = [[0 for i in range(num_tors_v)] for j in range(num_tors_h)] 
 
-    # get flat multi-POD topology
-    topology_gen = TopologyGenerator(num_tors_v, num_tors_h)
-    G = topology_gen.get_reconfig_graph([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
-    #topology_gen.write_to_file()
+    # keep track of workloads
+    all_workloads =[]
 
     while episode_number <= EPISODES:
         episode_number+=1
         print(f"---------STARTING EP NUM {episode_number}----------")
 
+        # get flat multi-POD topology
+        topology_gen = TopologyGenerator(num_tors_v, num_tors_h)
+        G = topology_gen.get_reconfig_graph([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+        #topology_gen.write_to_file()
+
         # ------------------------------------------
-        # start workloads 
+        # clear memeories and start workloads 
+        workloads_on_hold.clear()
+        workloads_deployed.clear()
+        workloads_slowed.clear()
+
         workloads = pd.read_csv(r"/Users/massimilianosica/Desktop/Research Work/Self-Supervised-Deep-Reinforcement-Learning-for-DC-HPC-Reconfiguration-/Massimiliano/JOCN/workloads.csv")
         print(workloads.head(5))
         for i in range(len(workloads)):
@@ -144,7 +151,7 @@ if __name__ == "__main__":
                 # get action index
                 action_index, action = DQN_model.take_action(state_tensor)
                 
-                all_workloads = []
+                all_workloads.clear()
                 all_workloads.extend(workloads_deployed)
                 all_workloads.extend(workloads_on_hold)
                 workloads_on_hold.clear()
@@ -187,6 +194,7 @@ if __name__ == "__main__":
                 cur_state = state2
                 before = state2
                 after = 0
+                reward = 0
 
                 # I need to check if it is time to update the weights 
                 if number_of_reconfig == K:
