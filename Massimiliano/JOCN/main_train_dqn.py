@@ -13,6 +13,7 @@ import networkx as nx
 import time 
 import torch
 import pandas as pd
+import matplotlib.pyplot as plt
 
 """
 notes:
@@ -53,15 +54,15 @@ if __name__ == "__main__":
     workloads_on_hold = []
     workloads_slowed = []
 
+    # store rewards for plotting 
+    rewards_plot = []
+
     # values used to compute the reward 
     after = 0
     before = 0
 
     # initialize number of reconfigurations to know when to train
     number_of_reconfig = 0
-
-    # number of program iterations to keep track of the steps and define episode end
-    program_iterations = 0
 
     # buffer 
     buffer = ReplayBuffer(BUF_SIZE)
@@ -83,6 +84,10 @@ if __name__ == "__main__":
     while episode_number <= EPISODES:
         episode_number+=1
         print(f"---------STARTING EP NUM {episode_number}----------")
+
+        # reset iterations 
+        # number of program iterations to keep track of the steps and define episode end
+        program_iterations = 0
 
         # get flat multi-POD topology
         topology_gen = TopologyGenerator(num_tors_v, num_tors_h)
@@ -182,12 +187,13 @@ if __name__ == "__main__":
                         workloads_on_hold.append(workload)
                 
                 # here I will need to compute the reward and add to buffer
-                state2 = len(workloads_slowed)+len(workloads_on_hold)
+                state2 = STATE_SPACE[(len(workloads_slowed)+len(workloads_on_hold))-1]
                 state2_tensor = torch.tensor(state2, dtype=torch.float, requires_grad=True)
                 after = len(workloads_slowed)+len(workloads_on_hold)
                 reward = before - after
                 buffer.add_trajectory(state_tensor, torch.tensor(action_index), torch.tensor(reward), state2_tensor) 
                 number_of_reconfig += 1
+                rewards_plot.append(reward)
                 print(f"-------REWARD {reward}-----------")
                 
                 # setup for next iteration
@@ -200,7 +206,6 @@ if __name__ == "__main__":
                 if number_of_reconfig == K:
                     print('-------------UPDATING-------------------------------')
                     net_loss = DQN_model.update_parameters()
-                    #net_loss_print.append(float(net_loss))
                     number_of_reconfig = 0
                     
                 if episode_number % C == 0 and episode_number != 0:
@@ -245,7 +250,10 @@ if __name__ == "__main__":
                         print("--------------")
                         time.sleep(1)
 
-        
+    x = list(range(0, EPISODES))
+    y = rewards_plot
+    plt.plot(list(range(len(y))),y)
+    plt.show() 
             
             
             
