@@ -23,7 +23,7 @@ class DQN:
         self.batch = 4
         self.gamma = 0.99 #0.99
         self.tau = 1e-3
-        self.epsilon = 0.4  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
+        self.epsilon = 0.0  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
         self.eps_dec = 0.01
         self.eps_min = 0.001
 

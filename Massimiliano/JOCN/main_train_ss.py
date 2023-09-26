@@ -8,6 +8,7 @@ allows the user to run the simulation"""
 from Workload import Workload
 from topology import TopologyGenerator
 from DQN_Trainer import DQN
+from SSTrain import SSTrain
 from Replay_Buffer import ReplayBuffer
 import networkx as nx 
 import time 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     episode_number = 0 # keep track of the episode we are at 
 
     # My state space is dynamic and will depend on the number of workloads on hold and slowed
-    STATE_SPACE = [[0 for _ in range(NUM_WORLOADS)] for _ in range(NUM_WORLOADS)] 
+    STATE_SPACE = [[0 for _ in range(NUM_WORLOADS+1)] for _ in range(NUM_WORLOADS+1)] 
     
     # Now I need to ohe the state space 
     for i in range(len(STATE_SPACE[0])):
@@ -70,6 +71,9 @@ if __name__ == "__main__":
     # create DQN trainer
     DQN_model = DQN(buffer, STATE_SPACE)
 
+    # create a self supervise trainer
+    SelfS = SSTrain()  
+
     # topology configuration 
     num_tors_v = 2 
     num_tors_h = num_tors_v
@@ -82,6 +86,7 @@ if __name__ == "__main__":
     all_workloads =[]
 
     while episode_number <= EPISODES:
+        reconfigs = 0 # keeps track of the number of recofnigs per episode
         episode_number+=1
         print(f"---------STARTING EP NUM {episode_number}----------")
 
@@ -139,10 +144,11 @@ if __name__ == "__main__":
             print(f"---------STARTING ITER NUM {program_iterations}----------")
             program_iterations +=1
 
-            # current MC state 
-            print(STATE_SPACE)
+            # current MC state
+            
             print(len(workloads_slowed)+len(workloads_on_hold))
-            cur_state = STATE_SPACE[(len(workloads_slowed)+len(workloads_on_hold))-1]
+            cur_state = STATE_SPACE[(len(workloads_slowed)+len(workloads_on_hold))]
+            print(cur_state)
 
             # used to compute reward later
             before = len(workloads_slowed)+len(workloads_on_hold)
@@ -151,6 +157,7 @@ if __name__ == "__main__":
             if len(workloads_on_hold) >= RECONF_THR['on hold'] or len(workloads_slowed) >= RECONF_THR['slowed']:
                 # reconfigure
                 print("RECONFIGURING!")
+                reconfigs+=1
                 # initial state tensor
                 state_tensor = torch.tensor(cur_state,dtype=torch.float, requires_grad=True)
                 # get action index
@@ -191,11 +198,31 @@ if __name__ == "__main__":
                 state2_tensor = torch.tensor(state2, dtype=torch.float, requires_grad=True)
                 after = len(workloads_slowed)+len(workloads_on_hold)
                 reward = before - after
-                buffer.add_trajectory(state_tensor, torch.tensor(action_index), torch.tensor(reward), state2_tensor) 
                 number_of_reconfig += 1
                 rewards_plot.append(reward)
                 print(f"-------REWARD {reward}-----------")
+
+                ##################################################
+                # self-supervised part
+                if reconfigs > 1:
+
+                    print(f'passing{state_tensor} ')
+                    precedence = SelfS.pred(state_tensor, buffer)
+                    precedence = precedence.tolist()
+                    print(f'--------------------PURE PRECEDENCE {precedence}----------------------------------')
+                    ss = precedence[0]
+                    print(f'------PRECEDENCE {ss}--------')
+                    reward = 0.125 + (0.125 - -0.125) * (reward - ss)  # normalize to fit our range
+                    print(f'--------REWARD SS {reward}----ss {ss}-----')
+                    
+                #########################################
                 
+                # add reward to buffer 
+                if cur_state == STATE_SPACE[0]:
+                    buffer.add_trajectory(state_tensor, torch.tensor(action_index), torch.tensor(reward+ss), state2_tensor) 
+                else:
+                    buffer.add_trajectory(state_tensor, torch.tensor(action_index), torch.tensor(reward), state2_tensor) 
+
                 # setup for next iteration
                 cur_state = state2
                 before = state2
@@ -207,14 +234,19 @@ if __name__ == "__main__":
                     print('-------------UPDATING-------------------------------')
                     net_loss = DQN_model.update_parameters()
                     number_of_reconfig = 0
+                    ss_loss = SelfS.train(buffer)
                     
                 if episode_number % C == 0 and episode_number != 0:
                     print('--------------------TARGET RESET--------------------------')
                     DQN_model.reset_weights()
                 
-                # if best state has been reached stop 
-                if len(workloads_slowed)+len(workloads_on_hold) == 0:
+                # if best state or irreversible has been reached stop 
+                if cur_state == STATE_SPACE[0]:
                     print("optimal state reached, ending episode")
+                    break 
+
+                elif cur_state == STATE_SPACE[-1]:
+                    print("irreversible state reached, ending episode")
                     break 
 
             else:
