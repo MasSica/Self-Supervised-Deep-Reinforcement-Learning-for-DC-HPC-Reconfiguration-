@@ -5,16 +5,23 @@ import torch.nn as nn
 from DQN_Agent import DQN_Net
 from torch.optim import Adam
 import random
+from action_generator import action_generator
 
 
 class DQN:
 
-    def __init__(self, buffer, state):
+    def __init__(self, buffer, state, num_tors_h, num_tors_v, TM):
 
         # the sizes are fixed
         self.buffer = buffer
         self.state_size = len(state)
-        self.action_size = 7
+        self.num_tors_h = num_tors_h 
+        self.num_tors_v = num_tors_v
+        self.TM = TM # total traffic matrix 
+
+        # define action space 
+        self.action_space = action_generator(self.num_tors_h, self.num_tors_v,TM)
+        self.action_size = len(self.action_space)
 
         # we define hyperparameters
 
@@ -23,7 +30,7 @@ class DQN:
         self.batch = 4
         self.gamma = 0.99 #0.99
         self.tau = 1e-3
-        self.epsilon = 0.0  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
+        self.epsilon = 0.2  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
         self.eps_dec = 0.01
         self.eps_min = 0.001
 
@@ -43,6 +50,8 @@ class DQN:
         # template [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
         # check notability for pics 
 
+        
+        """
         self.action_space = [ 
             [[0,1,0,1],[1,0,1,0],[0,1,0,1],[1,0,1,0]],
             [[0,1,1,0],[1,0,0,1],[1,0,0,1],[0,1,1,0]], # best
@@ -52,8 +61,7 @@ class DQN:
             [[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]],
             [[0,1,1,0],[1,0,0,1],[1,0,0,0],[1,1,0,0]]
         ]
-
-
+        """
 
     def take_action(self, state): # take action and generate new state
         # convert state to tensor

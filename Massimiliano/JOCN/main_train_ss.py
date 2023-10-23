@@ -57,6 +57,7 @@ if __name__ == "__main__":
 
     # store rewards for plotting 
     rewards_plot = []
+    loss_plot_ra = []
 
     # values used to compute the reward 
     after = 0
@@ -235,6 +236,7 @@ if __name__ == "__main__":
                     net_loss = DQN_model.update_parameters()
                     number_of_reconfig = 0
                     ss_loss = SelfS.train(buffer)
+                    loss_plot_ra.append(ss_loss)
                     
                 if episode_number % C == 0 and episode_number != 0:
                     print('--------------------TARGET RESET--------------------------')
@@ -282,8 +284,11 @@ if __name__ == "__main__":
                         print("--------------")
                         time.sleep(1)
 
-    x = list(range(0, EPISODES))
     y = rewards_plot
+    plt.plot(list(range(len(y))),y)
+    plt.show() 
+
+    y = loss_plot_ra
     plt.plot(list(range(len(y))),y)
     plt.show() 
             

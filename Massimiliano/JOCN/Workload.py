@@ -80,9 +80,12 @@ class Workload:
         for i in range(len(self.tm[0])):
             for j in range(len(self.tm[0])):                
                 if self.tm[i][j] != 0:  
-                    
                     # step 1 - get all possible paths for the demand FIX! TOO computationally intensive
-                    paths = list(nx.all_simple_paths(G, source=i, target=j))
+                    #paths = list(nx.all_simple_paths(G, source=i, target=j))
+                    try:
+                        paths = [nx.shortest_path(G, source=i, target=j, weight=None, method='dijkstra')]
+                    except:
+                        paths=[]
 
                     if len(paths)==0:
                         return True
@@ -94,7 +97,6 @@ class Workload:
                     for path in paths:
                         cur_cumulative_band = 0
                         l = 0; r = 1
-                        
                         while r < len(path):
                             cur_cumulative_band += band_avail[tuple([path[l],path[r]])]
                             l+=1

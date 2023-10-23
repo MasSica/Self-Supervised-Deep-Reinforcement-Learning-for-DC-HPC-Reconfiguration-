@@ -112,7 +112,7 @@ class TopologyGenerator:
 
     def get_reconfig_graph(self, toplogy_matrix):
         print('--------- GETTING NEW TOPOLOGY ------------')
-        print(toplogy_matrix)
+        #print(toplogy_matrix)
         G = nx.DiGraph()
         nr_tor = self.num_tors_v* self.num_tors_h
         G = nx.DiGraph()
@@ -127,3 +127,86 @@ class TopologyGenerator:
         return G
 
     
+    def get_topo_optimal(self, tm, num_port=1, wave_capacity=100):
+        num_tors_v = self.num_tors_h
+        num_tors_h = self.num_tors_v
+        num_tors = num_tors_h*num_tors_v
+
+        traffic_matrix=np.array([np.array(x) for x in tm])
+
+        # get flat multi-POD topology
+        G, connectivity_h, connetivity_v = self.get_graph()
+        num_inport_h = num_port * np.ones(num_tors)
+        num_inport_v = num_port * np.ones(num_tors)
+        num_outport_h = num_port * np.ones(num_tors)
+        num_outport_v = num_port * np.ones(num_tors)
+
+        # determine the topology
+        weight_matrix = traffic_matrix.copy()
+        topology = np.zeros(shape=(num_tors, num_tors))
+        # tp = 1
+        # te = 1
+        record_node = np.zeros(shape=(num_tors, num_tors))
+        weight_matrix[weight_matrix == 0] = -sys.maxsize
+        while ((sum(num_inport_h>0) > 1 and sum(num_outport_h>0) > 1) or
+            (sum(num_inport_v>0) > 1 and sum(num_outport_v>0) > 1))\
+                and np.max(np.max(weight_matrix)) != -sys.maxsize:
+            src_node = np.argmax(weight_matrix)//num_tors
+            dst_node = np.argmax(weight_matrix)%num_tors
+            # src_node
+            path = nx.shortest_path(G, source=src_node, target=dst_node, weight="weight", method='bellman-ford')
+            total = 0
+            for node1, node2 in zip(path, path[1:]):
+                if connectivity_h[node1, node2] == 1 and num_outport_h[node1]> 0 and num_inport_h[node2]> 0:
+                    total += 1
+                elif connetivity_v[node1, node2] == 1 and num_outport_v[node1]> 0 and num_inport_v[node2]> 0:
+                    total += 1
+
+            if total == len(path)-1:
+                for node1, node2 in zip(path, path[1:]):
+                    if connectivity_h[node1, node2] == 1:
+                        num_outport_h[node1] = num_outport_h[node1] - 1
+                        num_inport_h[node2] = num_inport_h[node2] - 1
+                        num_outport_h[node2] = num_outport_h[node2] - 1
+                        num_inport_h[node1] = num_inport_h[node1] - 1
+                    elif connetivity_v[node1, node2] == 1:
+                        num_outport_v[node1] = num_outport_v[node1] - 1
+                        num_inport_v[node2] = num_inport_v[node2] - 1
+                        num_outport_v[node2] = num_outport_v[node2] - 1
+                        num_inport_v[node1] = num_inport_v[node1] - 1
+
+                    if record_node[node1, node2] == 0:
+                        record_node[node1, node2] = 1
+                        record_node[node2, node1] = 1
+                    topology[node1, node2] = topology[node1, node2] + 1
+                    topology[node2, node1] = topology[node2, node1] + 1
+                # topology
+                weight_matrix[src_node, dst_node] = weight_matrix[src_node, dst_node] - wave_capacity
+                weight_matrix[dst_node, src_node] = weight_matrix[dst_node, src_node] - wave_capacity
+
+            else:
+                weight_matrix[src_node, dst_node] = -sys.maxsize
+                weight_matrix[dst_node, src_node] = -sys.maxsize
+        # allocate remaining ports
+        aa = np.where(num_outport_h > 0)[0]
+        for i in aa:
+            for j in aa[np.where(aa==i)[0][0]:]:
+                if connectivity_h[i, j] > 0 and num_outport_h[i] > 0 and num_outport_h[j] > 0: # num_outport is changing
+                    port_add = min(num_outport_h[i], num_outport_h[j])
+                    topology[i, j] = topology[i, j] + port_add
+                    topology[j, i] = topology[j, i] + port_add
+                    num_outport_h[i] = num_outport_h[i] - port_add
+                    num_outport_h[j] = num_outport_h[j] - port_add
+
+        aa = np.where(num_outport_v > 0)[0]
+        for i in aa:
+            for j in aa[np.where(aa==i)[0][0]:]:
+                if connetivity_v[i, j] > 0 and num_outport_v[i] > 0 and num_outport_v[j] > 0:
+                    port_add = min(num_outport_v[i], num_outport_v[j])
+                    topology[i, j] = topology[i, j] + port_add
+                    topology[j, i] = topology[j, i] + port_add
+                    num_outport_v[i] = num_outport_v[i] - port_add
+                    num_outport_v[j] = num_outport_v[j] - port_add
+
+
+        return topology, connectivity_h + connetivity_v

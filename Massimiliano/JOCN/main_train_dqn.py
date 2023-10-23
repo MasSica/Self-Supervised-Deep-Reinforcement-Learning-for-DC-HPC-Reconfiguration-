@@ -15,11 +15,15 @@ import torch
 import pandas as pd
 import matplotlib.pyplot as plt
 
-"""
-notes:
-- need to define the concept of network crash for radrl 
-- create a workload generator to automatize the procedure 
-"""
+
+# helper function to sum matrices of same shape 
+def sum_matrices(tm1, tm2):
+    tm_sum=[[0 for i in range(len(tm1[0]))] for j in range(len(tm1))]
+    for i in range(len(tm1)):
+        for j in range(len(tm1[0])):
+            tm_sum[i][j]= tm1[i][j]+tm2[i][j]
+    return tm_sum
+
 
 if __name__ == "__main__":
 
@@ -67,16 +71,14 @@ if __name__ == "__main__":
     # buffer 
     buffer = ReplayBuffer(BUF_SIZE)
 
-    # create DQN trainer
-    DQN_model = DQN(buffer, STATE_SPACE)
-
     # topology configuration 
-    num_tors_v = 2 
+    num_tors_v = 2
     num_tors_h = num_tors_v
     num_tors = num_tors_h*num_tors_v
 
     # Initilize traffic matrix 
-    tm = [[0 for i in range(num_tors_v)] for j in range(num_tors_h)] 
+    tm = [[0 for i in range(num_tors_v+num_tors_h)] for j in range(num_tors_v+num_tors_h)] 
+    TM = [[0 for i in range(num_tors_v+num_tors_h)] for j in range(num_tors_v+num_tors_h)] # the total traffic matrix for all the workloads 
 
     # keep track of workloads
     all_workloads =[]
@@ -91,7 +93,8 @@ if __name__ == "__main__":
 
         # get flat multi-POD topology
         topology_gen = TopologyGenerator(num_tors_v, num_tors_h)
-        G = topology_gen.get_reconfig_graph([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+        initial_topo_failed = [[0]*(num_tors_h*num_tors_v)]*(num_tors_h*num_tors_v) 
+        G = topology_gen.get_reconfig_graph(initial_topo_failed)
         #topology_gen.write_to_file()
 
         # ------------------------------------------
@@ -101,7 +104,7 @@ if __name__ == "__main__":
         workloads_slowed.clear()
 
         workloads = pd.read_csv(r"/Users/massimilianosica/Desktop/Research Work/Self-Supervised-Deep-Reinforcement-Learning-for-DC-HPC-Reconfiguration-/Massimiliano/JOCN/workloads.csv")
-        print(workloads.head(5))
+        #print(workloads.head(5))
         for i in range(len(workloads)):
 
             tg = float(workloads.loc[i, "total_gigs"])
@@ -111,7 +114,8 @@ if __name__ == "__main__":
             tors_involved = tors_involved.split(',')
             workload = Workload(name, num_tors_h, num_tors_v, tg, gbs, *tors_involved)
             tm = workload.fill_tm()
-            
+            TM = sum_matrices(tm,TM)
+
             # Now that we have our traffic matrix, we can route the workload the user requested
             workload.route(G)
             # If the network is too busy catch the exception and restore band 
@@ -130,6 +134,9 @@ if __name__ == "__main__":
                 workload.terminate(G)
                 workloads_on_hold.append(workload)
 
+        # create DQN trainer
+        DQN_model = DQN(buffer, STATE_SPACE, num_tors_h, num_tors_v, TM)
+        
         #-------------------------------------------
         # START EPISODE ITERATION
         #-------------------------------------------

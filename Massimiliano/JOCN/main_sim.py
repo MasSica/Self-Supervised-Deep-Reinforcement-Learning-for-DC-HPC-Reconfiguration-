@@ -47,7 +47,7 @@ if __name__ == "__main__":
     # create DQN trainer
     DQN_model = DQN(10,STATE_SPACE)
 
-    num_tors_v = 2 #2 
+    num_tors_v = 32 #2 
     num_tors_h = num_tors_v
     num_tors = num_tors_h*num_tors_v
 
@@ -132,7 +132,6 @@ if __name__ == "__main__":
                             workloads_slowed.remove(workload) if workload in workloads_slowed else workloads_slowed
                             print(nx.get_edge_attributes(G, "weight"))
 
-                            # check if other workloads can be sped up
                             for slow_workload in workloads_slowed:
                                 full_speed = slow_workload.update_ttf_slowed(G)
                                 # add check if workload is going at full speed
@@ -167,7 +166,7 @@ if __name__ == "__main__":
                 tors_involved = tors_involved.split(',')
                 workload = Workload(name, num_tors_h, num_tors_v, tg, gbs, *tors_involved)
                 tm = workload.fill_tm()
-                print(f"tm {tm}")
+                #print(f"tm {tm}")
                 # Now that we have our traffic matrix, we can route the workload the user requested
                 workload.route(G)
                 # If the network is too busy catch the exception and restore band 
