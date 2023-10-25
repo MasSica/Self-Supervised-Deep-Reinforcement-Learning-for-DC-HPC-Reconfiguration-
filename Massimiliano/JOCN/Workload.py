@@ -178,9 +178,14 @@ class Workload:
                     G.edges[edge]['weight']=0
 
             # ------------------
-            print(f"Time to finish before {self.total_gigs*(1/self.new_gigabit_s)}")
+            before = self.total_gigs*(1/self.new_gigabit_s)
+            print(f"Time to finish before {before}")
             #I need to get rid of the served gigabits 
             self.total_gigs-= ((time.time()-self.start_time)*self.gigabit_s)
+
+            if most_bottlnecked_edge_cap == 0:
+                raise Exception("Network too busy, workload on hold")
+
             # here i calculate how much time is needed with the new speed
             self.time_to_finish = self.total_gigs * (1/most_bottlnecked_edge_cap) # I use the most bottlenecked link as reference
 
@@ -190,7 +195,10 @@ class Workload:
             self.new_gigabit_s = most_bottlnecked_edge_cap # data is sent at the lowest rate
             print(f"Time to finish now {self.time_to_finish}")
             print(f"New speed {self.new_gigabit_s}")
-            slowed = True
+            if  self.time_to_finish > before :
+                slowed = True
+            else:
+                slowed = False
             #-------------------
 
         # if the workload is not slowed, subtract original gigabit_s value

@@ -82,6 +82,8 @@ if __name__ == "__main__":
 
     # keep track of workloads
     all_workloads =[]
+    # create DQN trainer
+    DQN_model = DQN(buffer, STATE_SPACE, num_tors_h, num_tors_v, TM)
 
     while episode_number <= EPISODES:
         episode_number+=1
@@ -134,9 +136,8 @@ if __name__ == "__main__":
                 workload.terminate(G)
                 workloads_on_hold.append(workload)
 
-        # create DQN trainer
-        DQN_model = DQN(buffer, STATE_SPACE, num_tors_h, num_tors_v, TM)
-        
+        # DQN Model was here
+
         #-------------------------------------------
         # START EPISODE ITERATION
         #-------------------------------------------
@@ -171,7 +172,7 @@ if __name__ == "__main__":
                 workloads_slowed.clear()
 
                 # reset G
-                G = topology_gen.get_reconfig_graph(action) 
+                G = topology_gen.get_reconfig_graph(action)
 
                 # reroute everything
                 for workload in all_workloads:
@@ -189,7 +190,8 @@ if __name__ == "__main__":
                         else:
                             workloads_deployed.append(workload)
         
-                    except Exception:
+                    except Exception as e:
+                        print(str(e))
                         workload.terminate(G)
                         workloads_on_hold.append(workload)
                 

@@ -24,9 +24,9 @@ class DQN_Net(nn.Module):
 
         # define the network (currently very simple) for the state input
 
-        self.DQN_Net_input_state = nn.Linear(self.state, 15) #30
-        self.DQN_Net_layer_state = nn.Linear(15, 30) #64
-        self.DQN_Net_layer_state2 = nn.Linear(30, self.action)
+        self.DQN_Net_input_state = nn.Linear(self.state, 30) #30
+        self.DQN_Net_layer_state = nn.Linear(30, 64) #64
+        self.DQN_Net_layer_state2 = nn.Linear(64, self.action)
 
         self.init_weights(init_w)
 

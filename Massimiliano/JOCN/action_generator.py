@@ -10,8 +10,8 @@ import time
 import numpy as np
 
 def action_generator(num_tors_h,num_tors_v, tm):
-
-    num_actions = 18 # number of actions in addition to optimal and worse 
+    print('generating actions')
+    num_actions = 3 # number of actions in addition to optimal and worse 
     tp = TopologyGenerator(num_tors_v, num_tors_h)
     actions = []
 
@@ -36,7 +36,10 @@ def action_generator(num_tors_h,num_tors_v, tm):
             mtx[v+1][u+1] = 0
             actions.append(mtx)
 
-    #print(actions)  
+    with open('actions.txt','w') as f:
+        f.write(str(actions))
+
+    time.sleep(20)
     return actions    
 
 """
