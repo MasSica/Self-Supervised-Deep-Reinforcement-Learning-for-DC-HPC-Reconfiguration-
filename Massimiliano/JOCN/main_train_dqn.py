@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 22.09.21
+# @Time    : 22.09.23
 # @Author  : massica
 
 """This file brings all the components of the program together and 
@@ -77,8 +77,8 @@ if __name__ == "__main__":
     num_tors = num_tors_h*num_tors_v
 
     # Initilize traffic matrix 
-    tm = [[0 for i in range(num_tors_v+num_tors_h)] for j in range(num_tors_v+num_tors_h)] 
-    TM = [[0 for i in range(num_tors_v+num_tors_h)] for j in range(num_tors_v+num_tors_h)] # the total traffic matrix for all the workloads 
+    tm = [[0 for i in range(num_tors_v*num_tors_h)] for j in range(num_tors_v*num_tors_h)] 
+    TM = [[0 for i in range(num_tors_v*num_tors_h)] for j in range(num_tors_v*num_tors_h)] # the total traffic matrix for all the workloads 
 
     # keep track of workloads
     all_workloads =[]
@@ -160,8 +160,9 @@ if __name__ == "__main__":
                 # reconfigure
                 print("RECONFIGURING!")
                 # initial state tensor
-                state_tensor = torch.tensor(cur_state,dtype=torch.float, requires_grad=True)
+                state_tensor = torch.tensor(cur_state,dtype=torch.float) #, requires_grad=True
                 # get action index
+               
                 action_index, action = DQN_model.take_action(state_tensor)
                 
                 all_workloads.clear()
@@ -197,7 +198,7 @@ if __name__ == "__main__":
                 
                 # here I will need to compute the reward and add to buffer
                 state2 = STATE_SPACE[(len(workloads_slowed)+len(workloads_on_hold))-1]
-                state2_tensor = torch.tensor(state2, dtype=torch.float, requires_grad=True)
+                state2_tensor = torch.tensor(state2, dtype=torch.float) #, requires_grad=True
                 after = len(workloads_slowed)+len(workloads_on_hold)
                 reward = before - after
                 buffer.add_trajectory(state_tensor, torch.tensor(action_index), torch.tensor(reward), state2_tensor) 

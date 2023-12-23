@@ -30,7 +30,7 @@ class DQN:
         self.batch = 4
         self.gamma = 0.99 #0.99
         self.tau = 1e-3
-        self.epsilon = 0.8  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
+        self.epsilon = 0.1  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
         self.eps_dec = 0.01
         self.eps_min = 0.001
 
@@ -50,25 +50,16 @@ class DQN:
         # template [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
         # check notability for pics 
 
-        
-        """
-        self.action_space = [ 
-            [[0,1,0,1],[1,0,1,0],[0,1,0,1],[1,0,1,0]],
-            [[0,1,1,0],[1,0,0,1],[1,0,0,1],[0,1,1,0]], # best
-            [[0,1,0,0],[0,0,0,1],[0,0,0,0],[0,0,0,0]],
-            [[0,1,0,1],[1,0,1,0],[0,1,0,0],[1,0,0,0]],
-            [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
-            [[0,1,0,1],[1,0,0,0],[0,0,0,1],[1,0,1,0]],
-            [[0,1,1,0],[1,0,0,1],[1,0,0,0],[1,1,0,0]]
-        ]
-        """
 
     def take_action(self, state): # take action and generate new state
         # convert state to tensor
         state = torch.tensor(state, dtype=torch.float, requires_grad=True)
 
+        random.seed(42)
         if random.random() > self.epsilon:
-            scores = self.net(state)
+            self.net.eval()
+            with torch.inference_mode():
+                scores = self.net(state)
             print(f'----scores {scores}-----')
             action_index = torch.argmax(scores)
 
@@ -88,6 +79,7 @@ class DQN:
 
     def update_parameters(self):
 
+        #torch.manual_seed(42)
         # actor loss vector
         # sample minibatch of transitions
         s, a, r, s2 = self.buffer.sample_buffer(self.batch)
@@ -95,6 +87,7 @@ class DQN:
         criterion = nn.SmoothL1Loss()
 
         for i in range(len(s)):
+            self.net.train()
             self.net_optimizer.zero_grad()
 
             y = self.net(s[i])[a[i]]

@@ -6,7 +6,6 @@ import torch.nn.functional as F  #for the activation functions
 import numpy as np
 
 
-
 def fanin_init(size, fanin=None):
     fanin = fanin or size[0]
     v = 1. / np.sqrt(fanin)
@@ -27,10 +26,10 @@ class DQN_Net(nn.Module):
         self.DQN_Net_input_state = nn.Linear(self.state, 30) #30
         self.DQN_Net_layer_state = nn.Linear(30, 64) #64
         self.DQN_Net_layer_state2 = nn.Linear(64, self.action)
-
+        torch.manual_seed(42)
         self.init_weights(init_w)
 
-    def init_weights(self, init_w):
+    def init_weights(self,init_w):
         self.DQN_Net_input_state.weight.data = fanin_init(self.DQN_Net_input_state.weight.data.size())
         self.DQN_Net_layer_state.weight.data = fanin_init(self.DQN_Net_layer_state.weight.data.size())
         self.DQN_Net_layer_state2.weight.data = fanin_init(self.DQN_Net_layer_state2.weight.data.size())

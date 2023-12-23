@@ -11,15 +11,17 @@ import numpy as np
 
 def action_generator(num_tors_h,num_tors_v, tm):
     print('generating actions')
-    num_actions = 3 # number of actions in addition to optimal and worse 
+    num_actions = 4 # number of actions in addition to optimal 
+    num_worst = 15
     tp = TopologyGenerator(num_tors_v, num_tors_h)
     actions = []
 
     optimal_topo, adjacency = tp.get_topo_optimal(tm)
     actions.append(optimal_topo)
     
-    #add worst topology
-    actions.append(np.array([[0]*(num_tors_h*num_tors_v)]*(num_tors_h*num_tors_v)))
+    #add worst topology, U will add a certain number of these 
+    for _ in range(num_worst):
+        actions.append(np.array([[0]*(num_tors_h*num_tors_v)]*(num_tors_h*num_tors_v)))
 
     # modify optimal action to extend action space, remove one edge per iteration  
 
@@ -39,7 +41,6 @@ def action_generator(num_tors_h,num_tors_v, tm):
     with open('actions.txt','w') as f:
         f.write(str(actions))
 
-    time.sleep(20)
     return actions    
 
 """
