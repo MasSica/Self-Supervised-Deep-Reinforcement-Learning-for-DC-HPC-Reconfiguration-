@@ -19,7 +19,7 @@ This class will implement a workload simulator for our topology:
 import networkx as nx 
 import time as time 
 import itertools
-import pandas as pd 
+import numpy as np
 import random
 
 class Workload:
@@ -288,10 +288,7 @@ class Workload:
         self.all_paths.clear()
 
     def get_tm_from_file(self):
-        colnames = [i for i in range(64)]
-        tor_heatmap = pd.read_csv("./tor_heatmap_AMR_MiniApp_n1728_dumpi-1.csv", names=colnames, header=None)
-         
-
+        tor_heatmap= np.genfromtxt('tor_heatmap_AMR_MiniApp_n1728_dumpi-1.csv', delimiter=',')
 
 
 

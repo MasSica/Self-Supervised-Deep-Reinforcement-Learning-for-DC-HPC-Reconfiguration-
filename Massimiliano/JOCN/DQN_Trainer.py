@@ -6,7 +6,7 @@ from DQN_Agent import DQN_Net
 from torch.optim import Adam
 import random
 from action_generator import action_generator
-
+import time
 
 class DQN:
 
@@ -25,12 +25,12 @@ class DQN:
 
         # we define hyperparameters
 
-        self.lr_c = 0.001
+        self.lr_c = 0.0001
 
         self.batch = 4
-        self.gamma = 0.99 #0.99
+        self.gamma = 0.5 #0.99
         self.tau = 1e-3
-        self.epsilon = 0.1  #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
+        self.epsilon = 0.8 #0.8 # ACT VERY RANDOMLY AT THE BEGINNING 0.8 dec 0.01 min 0.1
         self.eps_dec = 0.01
         self.eps_min = 0.001
 
@@ -53,9 +53,10 @@ class DQN:
 
     def take_action(self, state): # take action and generate new state
         # convert state to tensor
-        state = torch.tensor(state, dtype=torch.float, requires_grad=True)
+    
+        #state = torch.tensor(state, dtype=torch.float)#, requires_grad=True
 
-        random.seed(42)
+        random.seed(42727638232)
         if random.random() > self.epsilon:
             self.net.eval()
             with torch.inference_mode():
@@ -79,7 +80,7 @@ class DQN:
 
     def update_parameters(self):
 
-        #torch.manual_seed(42)
+        torch.manual_seed(42727638232)
         # actor loss vector
         # sample minibatch of transitions
         s, a, r, s2 = self.buffer.sample_buffer(self.batch)

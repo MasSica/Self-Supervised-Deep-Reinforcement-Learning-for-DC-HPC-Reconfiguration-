@@ -60,6 +60,7 @@ if __name__ == "__main__":
 
     # store rewards for plotting 
     rewards_plot = []
+    loss = []
 
     # values used to compute the reward 
     after = 0
@@ -217,6 +218,7 @@ if __name__ == "__main__":
                     print('-------------UPDATING-------------------------------')
                     net_loss = DQN_model.update_parameters()
                     number_of_reconfig = 0
+                    loss.append(net_loss)
                     
                 if episode_number % C == 0 and episode_number != 0:
                     print('--------------------TARGET RESET--------------------------')
@@ -263,6 +265,8 @@ if __name__ == "__main__":
     x = list(range(0, EPISODES))
     y = rewards_plot
     plt.plot(list(range(len(y))),y)
+    plt.show()
+    plt.plot(list(range(len(loss))),loss)
     plt.show() 
             
             

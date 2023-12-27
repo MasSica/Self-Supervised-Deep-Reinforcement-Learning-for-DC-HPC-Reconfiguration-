@@ -2,6 +2,8 @@
 
 import random
 
+# THIS IS NOT WORKING 
+
 class ReplayBuffer:
 
     def __init__(self, buffer_size):
@@ -37,7 +39,7 @@ class ReplayBuffer:
     def sample_buffer(self, batch):
 
         # now we get batch samples at random from the buffer; generate batch random numbers
-
+        random.seed(42)
         indexes = [random.randint(0, len(self.buffer_s)-1) for i in range(0, batch)]
 
         s_samples = [self.buffer_s[x] for x in range(len(self.buffer_s)) if x in indexes]  # take only the buffer values at the indexes we want
@@ -50,7 +52,7 @@ class ReplayBuffer:
     def sample_buffer_ss(self, batch):
 
         # now we get batch samples at random from the buffer; generate batch random numbers
-
+        random.seed(42)
 
         indexes = []
 
@@ -61,18 +63,15 @@ class ReplayBuffer:
 
             while random_num in indexes and random_num in self.used_indexes: # make sure you don't pick the same trajectory twice
                 random_num = random.randint(0, len(self.buffer_s)-1)
-                print(random_num)
 
             indexes.append(random_num)
             self.used_indexes.append(random_num)  # remember which indexes you used so that you don't pick teh same trajectory twice
 
 
-        print(indexes)
         s_samples = [self.buffer_s[x] for x in range(len(self.buffer_s)) if x in indexes]  # take only the buffer values at the indexes we want
         a_samples = [self.buffer_a[x] for x in range(len(self.buffer_a)) if x in indexes]
         r_samples = [self.buffer_r[x] for x in range(len(self.buffer_r)) if x in indexes]
         #s2_samples = [self.buffer_s2[x] for x in range(len(self.buffer_s2)) if x in indexes]
-
 
         return s_samples, a_samples, r_samples, indexes
 

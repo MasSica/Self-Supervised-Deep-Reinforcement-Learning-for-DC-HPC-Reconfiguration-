@@ -14,13 +14,14 @@ def fanin_init(size, fanin=None):
 
 class SS_Net(nn.Module):
 
-    def __init__(self, init_w=3e-3):
+    def __init__(self, states, init_w=3e-3):
         super(SS_Net, self).__init__()
 
-        # define the network (currently very simple) for the state input
+        # define the network for the state input
 
-        self.SS_Net_input_state = nn.Linear(4, 15)
-        self.SS_Net_layer_state = nn.Linear(30, 1)
+        self.SS_Net_input_state = nn.Linear(len(states), 5)
+        self.SS_Net_layer_state = nn.Linear(10, 1)
+        torch.manual_seed(42727638232)
         self.init_weights(init_w)
 
     def init_weights(self, init_w):

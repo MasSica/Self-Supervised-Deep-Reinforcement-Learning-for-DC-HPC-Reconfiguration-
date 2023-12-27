@@ -1,17 +1,19 @@
 """This file contains all the necessary methods for performing prediction and training for the self-supervised reversibility-aware agent"""
 
 import torch
-from SelfSupervised import *
+from SS_Agent import *
 from Replay_Buffer import *
 from torch.optim import *
-
+import time
+from copy import deepcopy
 
 class SSTrain:
-    def __init__(self):
-
-        self.net = SS_Net()  # this is the feature extractor for the observation
-        self.net_optimizer = Adam(self.net.parameters(), lr=0.1)
-        self.criterion = torch.nn.MSELoss()  # this is the loss function used for precedence estimator 
+    def __init__(self, states):
+        self.states = states # state space 
+        self.net = SS_Net(states=states)  # this is the feature extractor for the observation
+        self.net_optimizer = Adam(self.net.parameters(), lr=0.001)
+        self.criterion = torch.nn.MSELoss()  # this is the loss function used for precedence estimator     
+        torch.manual_seed(42727638235)
 
     def flatten(self, x):
         flat_list = []
@@ -36,11 +38,18 @@ class SSTrain:
 
     # returns precendence score 
     def pred(self, s, buffer):
+        #s_sampl, _, _, _ = buffer.sample_buffer_ss(1)  # sample one observation
+        #s_sampl = s_sampl[0]
+        #print(s,s_sampl)
+        random.seed(36367)
+        s_sampl = torch.tensor(random.choice(self.states),dtype=torch.float)
+        self.net.eval()
+        with torch.no_grad():
+            prev = self.net(s, s_sampl)
 
-        s_sampl, _, _, _ = buffer.sample_buffer_ss(1)  # sample one observation
-        s_sampl = torch.tensor(s_sampl[0], dtype=torch.float)
-        prev = self.net(s, s_sampl)
-
+        with open('precedences.txt', 'a+') as file:
+            file.write(str(prev)+" "+str(s)+" "+str(s_sampl)+'\n')
+            
         return prev
 
 
@@ -49,7 +58,7 @@ class SSTrain:
 
         # I have to combine two observations
 
-        torch.autograd.set_detect_anomaly(True)
+        #torch.autograd.set_detect_anomaly(True)
 
 
         s, _, _, indexes = buffer.sample_buffer_ss(4)  # batch is 4
@@ -70,14 +79,16 @@ class SSTrain:
         obs4 = torch.tensor(self.tensor_to_list(obs[3]), requires_grad=True)
 
         # here the self-labeling procedure begins
-
+        random.seed(42727638232)
         if random.random() >= 0.5:
             
             # we swap order
-            prev1 = self.net(obs2, obs1)
-            prev2 = self.net(obs3, obs4)
-            prev3 = self.net(obs1, obs4)
-            prev4 = self.net(obs2, obs4)
+            self.net.eval()
+            with torch.no_grad():
+                prev1 = self.net(obs2, obs1)
+                prev2 = self.net(obs3, obs4)
+                prev3 = self.net(obs1, obs4)
+                prev4 = self.net(obs2, obs4)
 
             if indexes[0] > indexes[1]:
                 label1 = 1
@@ -101,11 +112,12 @@ class SSTrain:
 
 
         else:
-
-            prev1 = self.net(obs1, obs2)
-            prev2 = self.net(obs4, obs3)
-            prev3 = self.net(obs4, obs1)
-            prev4 = self.net(obs4, obs2)
+            self.net.eval()
+            with torch.no_grad():
+                prev1 = self.net(obs1, obs2)
+                prev2 = self.net(obs4, obs3)
+                prev3 = self.net(obs4, obs1)
+                prev4 = self.net(obs4, obs2)
 
             if indexes[0] > indexes[1]:
                 label1 = 0
@@ -128,6 +140,7 @@ class SSTrain:
                 label4 = 1
 
         # now we compute the loss
+        self.net.train()
         prevs = torch.cat((prev1, prev2, prev3, prev4))
         labels = torch.tensor((label1, label2, label3, label4), dtype=torch.float, requires_grad=True)
         loss = self.criterion(prevs, labels)
@@ -138,7 +151,6 @@ class SSTrain:
         return float(loss)
 
     def save_model(self):
-
         path = 'ssonly.pt'
         torch.save(self.net.state_dict(), path)
 

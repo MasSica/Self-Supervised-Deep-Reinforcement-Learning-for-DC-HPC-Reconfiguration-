@@ -26,7 +26,7 @@ class DQN_Net(nn.Module):
         self.DQN_Net_input_state = nn.Linear(self.state, 30) #30
         self.DQN_Net_layer_state = nn.Linear(30, 64) #64
         self.DQN_Net_layer_state2 = nn.Linear(64, self.action)
-        torch.manual_seed(42)
+        torch.manual_seed(42727638232)
         self.init_weights(init_w)
 
     def init_weights(self,init_w):
